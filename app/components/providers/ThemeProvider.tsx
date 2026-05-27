@@ -80,16 +80,19 @@ export default function ThemeProvider({
           borderRadiusXS: 2,
           borderRadiusSM: 6,
           borderRadiusLG: 14,
-          padding: 16,
-          paddingSM: 12,
+          padding: 20,
+          paddingSM: 16,
           paddingLG: 24,
-          margin: 16,
-          marginSM: 12,
+          margin: 20,
+          marginSM: 16,
           marginLG: 24,
           boxShadow:
             "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
           boxShadowSecondary:
             "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)",
+          fontSize: 18,
+          controlPaddingHorizontal: 24,
+          controlHeight: 48,
         },
         components: {
           Button: {
