@@ -1,6 +1,7 @@
+import ThemeProvider from "@/components/providers/ThemeProvider";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { App } from "antd";
 import "antd/dist/reset.css";
-import ThemeProvider from "./components/providers/ThemeProvider";
 import type { Metadata } from "next";
 
 import { Inter } from "next/font/google";
@@ -24,7 +25,9 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body>
         <AntdRegistry>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <App>{children}</App>
+          </ThemeProvider>
         </AntdRegistry>
       </body>
     </html>

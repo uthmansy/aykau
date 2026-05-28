@@ -6,38 +6,39 @@ import { authService } from "@/services/auth/auth.service";
 import { useAuthStore } from "@/store/auth.store";
 import { Layout, Menu, MenuProps, theme } from "antd";
 import { Footer, Header } from "antd/es/layout/layout";
-import Sider from "antd/es/layout/Sider";
+// import Sider from "antd/es/layout/Sider";
 import {
   LaptopOutlined,
   NotificationOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import AppHeader from "@/components/layout/AppHeader";
 
-const items = Array.from({ length: 15 }).map((_, index) => ({
+const items = Array.from({ length: 5 }).map((_, index) => ({
   key: index + 1,
   label: `nav ${index + 1}`,
 }));
 
-const items2: MenuProps["items"] = [
-  UserOutlined,
-  LaptopOutlined,
-  NotificationOutlined,
-].map((icon, index) => {
-  const key = String(index + 1);
+// const items2: MenuProps["items"] = [
+//   UserOutlined,
+//   LaptopOutlined,
+//   NotificationOutlined,
+// ].map((icon, index) => {
+//   const key = String(index + 1);
 
-  return {
-    key: `sub${key}`,
-    icon: React.createElement(icon),
-    label: `subnav ${key}`,
-    children: Array.from({ length: 4 }).map((_, j) => {
-      const subKey = index * 4 + j + 1;
-      return {
-        key: subKey,
-        label: `option${subKey}`,
-      };
-    }),
-  };
-});
+//   return {
+//     key: `sub${key}`,
+//     icon: React.createElement(icon),
+//     label: `subnav ${key}`,
+//     children: Array.from({ length: 4 }).map((_, j) => {
+//       const subKey = index * 4 + j + 1;
+//       return {
+//         key: subKey,
+//         label: `option${subKey}`,
+//       };
+//     }),
+//   };
+// });
 
 export default function DashboardLayout({
   children,
@@ -70,19 +71,10 @@ export default function DashboardLayout({
 
   return (
     <Layout>
-      <Header style={{ display: "flex", alignItems: "center" }}>
-        <div className="demo-logo" />
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          defaultSelectedKeys={["2"]}
-          items={items}
-          style={{ flex: 1, minWidth: 0 }}
-        />
-      </Header>
+      <AppHeader />
 
       <Layout>
-        <Sider width={200} style={{ background: colorBgContainer }}>
+        {/* <Sider width={200} style={{ background: colorBgContainer }}>
           <Menu
             mode="inline"
             defaultSelectedKeys={["1"]}
@@ -90,11 +82,11 @@ export default function DashboardLayout({
             style={{ height: "100%", borderInlineEnd: 0 }}
             items={items2}
           />
-        </Sider>
+        </Sider> */}
         <Layout.Content style={{ padding: 20 }}>{children}</Layout.Content>
       </Layout>
       <Footer style={{ textAlign: "center" }}>
-        Ant Design ©{currentYear} Created by Ant UED
+        Aykau ©{currentYear} All rights reserved.
       </Footer>
     </Layout>
   );

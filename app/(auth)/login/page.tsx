@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Form, Input, message } from "antd";
+import { App, Button, Card, Form, Input } from "antd";
 import { loginSchema } from "@/schemas/auth.schema";
 import { authService } from "@/services/auth/auth.service";
 import { useAuthStore } from "@/store/auth.store";
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
   const [loading, setLoading] = useState(false);
+  const { message } = App.useApp();
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);

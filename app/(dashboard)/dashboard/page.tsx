@@ -1,5 +1,6 @@
 "use client";
 
+import ProfessionalOnboardingForm from "@/components/ui/ProfessionalOnboardingForm";
 import { Layout, Breadcrumb, theme } from "antd";
 
 const { Content } = Layout;
@@ -10,10 +11,6 @@ export default function Dashboard() {
   } = theme.useToken();
   return (
     <Content style={{ padding: "0 48px" }}>
-      <Breadcrumb
-        style={{ margin: "16px 0" }}
-        items={[{ title: "Home" }, { title: "List" }, { title: "App" }]}
-      />
       <div
         style={{
           background: colorBgContainer,
@@ -22,7 +19,7 @@ export default function Dashboard() {
           borderRadius: borderRadiusLG,
         }}
       >
-        Content
+        <ProfessionalOnboardingForm />
       </div>
     </Content>
   );
