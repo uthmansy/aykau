@@ -701,50 +701,6 @@ export default function JobPostingForm() {
     },
 
     {
-      title: "Contact",
-      content: (
-        <>
-          <Form.Item
-            name="contactMethod"
-            label="How should professionals contact you?"
-            rules={[
-              {
-                required: true,
-                type: "array",
-                message: "Select at least one method",
-              },
-            ]}
-            initialValue={data.contactMethod}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Select preferred contact methods"
-              options={CONTACT_METHODS}
-              maxTagCount="responsive"
-              allowClear
-              size={isMobile ? "middle" : "large"}
-            />
-          </Form.Item>
-
-          <div
-            style={{
-              background: "#fff7e6",
-              padding: "12px 16px",
-              borderRadius: 8,
-              border: "1px solid #ffd591",
-            }}
-          >
-            <p style={{ margin: 0, fontSize: 14, color: "#d46b08" }}>
-              <InfoCircleOutlined style={{ marginRight: 6 }} />
-              <strong>Privacy note:</strong> Your phone number is only shared
-              with professionals you explicitly approve.
-            </p>
-          </div>
-        </>
-      ),
-    },
-
-    {
       title: "Review",
       content: (
         <div>
@@ -803,12 +759,6 @@ export default function JobPostingForm() {
                   <strong>📅 Preferred date:</strong> {data.preferredDate}
                 </p>
               )}
-              <p>
-                <strong>📞 Contact via:</strong>{" "}
-                {(data.contactMethod || [])
-                  .map((m) => CONTACT_METHODS.find((c) => c.value === m)?.label)
-                  .join(", ") || "—"}
-              </p>
             </div>
           </Card>
 

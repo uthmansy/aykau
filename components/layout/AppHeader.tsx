@@ -6,15 +6,17 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/services/auth/auth.service";
 import Image from "next/image";
+import Link from "next/link";
 
 const { Header } = Layout;
 
 export default function AppHeader() {
   const router = useRouter();
   const { message } = App.useApp();
+  const pathname = usePathname();
 
   const handleMenuClick = async ({ key }: { key: string }) => {
     if (key === "logout") {
@@ -38,6 +40,60 @@ export default function AppHeader() {
       router.push("/settings");
     }
   };
+
+  const menuItems = [
+    {
+      key: "dashboard",
+      label: (
+        <Link
+          href="/dashboard"
+          style={{
+            color: "inherit",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span>Dashboard</span>
+        </Link>
+      ),
+      path: "/dashboard",
+    },
+    {
+      key: "my-requests",
+      label: (
+        <Link
+          href="/dashboard/my-requests"
+          style={{
+            color: "inherit",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span>My Requests</span>
+        </Link>
+      ),
+      path: "/dashboard/my-requests",
+    },
+    {
+      key: "settings",
+      label: (
+        <Link
+          href="/dashboard/settings"
+          style={{
+            color: "inherit",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span>Settings</span>
+        </Link>
+      ),
+      path: "/dashboard/settings",
+    },
+  ];
 
   const profileMenuItems = [
     {
@@ -68,6 +124,7 @@ export default function AppHeader() {
         alignItems: "center",
         justifyContent: "space-between",
         height: "5rem",
+        overflow: "hidden",
       }}
     >
       <Image
@@ -87,10 +144,13 @@ export default function AppHeader() {
         <Menu
           theme="dark"
           mode="horizontal"
-          items={[
-            { key: "1", label: "Dashboard" },
-            { key: "2", label: "Settings" },
+          selectedKeys={[
+            menuItems.find((item) => item.path === pathname)?.key ?? "",
           ]}
+          items={menuItems.map(({ key, label }) => ({
+            key,
+            label,
+          }))}
           style={{ flex: 1, minWidth: 0 }}
         />
 
