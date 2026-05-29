@@ -13,6 +13,7 @@ import {
   Divider,
   Tag,
   Tooltip,
+  Checkbox,
 } from "antd";
 import {
   UploadOutlined,
@@ -24,6 +25,7 @@ import {
 import { Grid } from "antd";
 import { NIGERIAN_STATES } from "@/constants/constants";
 import { useJobPostStore } from "@/store/jobPostForm.store";
+import { supabase } from "@/services/supabase/client";
 
 const { useBreakpoint } = Grid;
 
@@ -51,6 +53,7 @@ export interface JobPostData {
   serviceType?: "home" | "business" | "remote" | "other";
   budget?: string;
   urgency?: string;
+  frequency?: string;
   preferredDate?: string;
   contactMethod?: ("email" | "phone" | "whatsapp")[];
   customDetails?: Record<string, string>;
@@ -183,7 +186,7 @@ const DYNAMIC_FIELDS: Record<
       label: "Cleaning frequency",
       type: "select",
       options: [
-        { value: "once", label: "One-time" },
+        { value: "once", label: "One time" },
         { value: "weekly", label: "Weekly" },
         { value: "biweekly", label: "Bi-weekly" },
         { value: "monthly", label: "Monthly" },
@@ -295,24 +298,90 @@ export default function JobPostingForm() {
       const values = await form.validateFields();
       const finalData: JobPostData = { ...data, ...values };
 
+      // 1️⃣ Auth check
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        message.error("Please log in to post a request");
+        return;
+      }
+
       setLoading(true);
 
-      console.log("JOB REQUEST SUBMITTED:", finalData);
+      // 2️⃣ Generate job ID upfront (so we can use it for photo paths)
+      const jobId = crypto.randomUUID();
+      let photoPaths: string[] = [];
 
-      // TODO: Supabase insert
-      // const { error } = await supabase
-      //   .from('job_requests')
-      //   .insert({
-      //     ...finalData,
-      //     customer_id: authUser?.id,
-      //     status: 'open',
-      //     created_at: new Date(),
-      //   });
+      // 3️⃣ Upload photos first (if any)
+      if (finalData.photos?.length) {
+        const uploadPromises = finalData.photos.map(async (file: File) => {
+          const ext = file.name.split(".").pop() || "jpg";
+          const path = `${user.id}/${jobId}/${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 9)}.${ext}`;
+
+          const { error } = await supabase.storage
+            .from("job-photos")
+            .upload(path, file, { contentType: file.type });
+
+          if (error) throw error;
+          return path; // Store relative path, not full URL
+        });
+
+        photoPaths = await Promise.all(uploadPromises);
+      }
+
+      // 4️⃣ Extract dynamic fields (cleaning: numRooms, plumbing: issueType, etc.)
+      const knownFields = [
+        "category",
+        "subcategory",
+        "description",
+        "photos",
+        "serviceLocation",
+        "address",
+        "serviceType",
+        "accessNotes",
+        "budget",
+        "urgency",
+        "frequency",
+        "preferredDate",
+        "contactMethod",
+      ];
+      const customDetails = Object.fromEntries(
+        Object.entries(values).filter(([key]) => !knownFields.includes(key))
+      );
+
+      // 5️⃣ Insert job request
+      const { error: dbError } = await supabase.from("job_requests").insert({
+        id: jobId,
+        customer_id: user.id,
+        category: finalData.category,
+        subcategory: finalData.subcategory,
+        description: finalData.description,
+        photo_urls: photoPaths,
+        service_location: finalData.serviceLocation,
+        address: finalData.address || null,
+        service_type: finalData.serviceType,
+        access_notes: values.accessNotes || null,
+        budget: finalData.budget,
+        urgency: finalData.urgency,
+        frequency: finalData.frequency || null,
+        preferred_date: finalData.preferredDate || null,
+        contact_methods: finalData.contactMethod || ["email"],
+        custom_details: customDetails,
+        expires_at: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ).toISOString(),
+      });
+
+      if (dbError) throw dbError;
 
       message.success("Request posted! You'll receive quotes within 24 hours.");
       setSubmitted(true);
-    } catch {
-      message.error("Please complete required fields");
+    } catch (err: any) {
+      console.error("Job post failed:", err);
+      message.error(err.message || "Failed to submit request");
     } finally {
       setLoading(false);
     }
@@ -452,7 +521,6 @@ export default function JobPostingForm() {
               size={isMobile ? "middle" : "large"}
             />
           </Form.Item>
-
           <Form.Item
             name="subcategory"
             label="Be more specific"
@@ -475,7 +543,6 @@ export default function JobPostingForm() {
               size={isMobile ? "middle" : "large"}
             />
           </Form.Item>
-
           {/* Dynamic fields based on subcategory */}
           {dynamicFields.length > 0 && (
             <div
@@ -513,7 +580,13 @@ export default function JobPostingForm() {
               ))}
             </div>
           )}
-
+        </>
+      ),
+    },
+    {
+      title: "More Info",
+      content: (
+        <>
           <Form.Item
             name="description"
             label="Describe what you need"
@@ -533,9 +606,24 @@ export default function JobPostingForm() {
               showCount={false}
             />
           </Form.Item>
-
+          <Form.Item
+            name="frequency"
+            label="How often do you need this service?"
+            initialValue={data.frequency}
+          >
+            <Select
+              options={[
+                { value: "once", label: "One-time" },
+                { value: "weekly", label: "Weekly" },
+                { value: "biweekly", label: "Every 2 weeks" },
+                { value: "monthly", label: "Monthly" },
+              ]}
+              placeholder="Select frequency"
+            />
+          </Form.Item>
           <Form.Item
             label="Add photos"
+            name="photos"
             extra="Help professionals understand your request better (optional)"
           >
             <Upload
@@ -579,7 +667,6 @@ export default function JobPostingForm() {
         </>
       ),
     },
-
     {
       title: "Location",
       content: (
@@ -634,6 +721,16 @@ export default function JobPostingForm() {
               size={isMobile ? "middle" : "large"}
             />
           </Form.Item>
+          <Form.Item
+            name="accessNotes"
+            label="Access instructions (optional)"
+            extra="e.g. Gate code, parking info, building floor"
+          >
+            <Input.TextArea
+              rows={2}
+              placeholder="Help professionals arrive prepared"
+            />
+          </Form.Item>
         </>
       ),
     },
@@ -653,7 +750,7 @@ export default function JobPostingForm() {
             <Select
               placeholder="Select your budget"
               options={BUDGET_RANGES}
-              dropdownRender={(menu) => (
+              popupRender={(menu) => (
                 <>
                   {menu}
                   <Divider style={{ margin: "8px 0" }} />
