@@ -1,6 +1,7 @@
 "use client";
 
 import CustomerOnboardingForm from "@/components/ui/CustomerOnboardingForm";
+import JobPostingForm from "@/components/ui/JobPostingForm";
 import ProfessionalOnboardingForm from "@/components/ui/ProfessionalOnboardingForm";
 import { Layout, Breadcrumb, theme } from "antd";
 
@@ -26,7 +27,8 @@ export default function Dashboard() {
             margin: "0 auto",
           }}
         >
-          <CustomerOnboardingForm />
+          <JobPostingForm />
+          {/* <CustomerOnboardingForm /> */}
           {/* <ProfessionalOnboardingForm /> */}
         </div>
       </div>
