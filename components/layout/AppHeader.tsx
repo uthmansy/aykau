@@ -67,6 +67,7 @@ export default function AppHeader() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        height: "5rem",
       }}
     >
       <Image
@@ -76,29 +77,37 @@ export default function AppHeader() {
         height={40}
         priority
       />
-      <Menu
-        theme="dark"
-        mode="horizontal"
-        items={[
-          { key: "1", label: "Dashboard" },
-          { key: "2", label: "Settings" },
-        ]}
-        style={{ flex: 1, minWidth: 0 }}
-      />
-
-      <Dropdown
-        menu={{
-          //@ts-ignore
-          items: profileMenuItems,
-          onClick: handleMenuClick,
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
-        placement="bottomRight"
-        trigger={["click"]}
       >
-        <Space style={{ cursor: "pointer", marginLeft: 16 }}>
-          <Avatar icon={<UserOutlined />} />
-        </Space>
-      </Dropdown>
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          items={[
+            { key: "1", label: "Dashboard" },
+            { key: "2", label: "Settings" },
+          ]}
+          style={{ flex: 1, minWidth: 0 }}
+        />
+
+        <Dropdown
+          menu={{
+            //@ts-ignore
+            items: profileMenuItems,
+            onClick: handleMenuClick,
+          }}
+          placement="bottomRight"
+          trigger={["click"]}
+        >
+          <Space style={{ cursor: "pointer", marginLeft: 16 }}>
+            <Avatar icon={<UserOutlined />} />
+          </Space>
+        </Dropdown>
+      </div>
     </Header>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import CustomerOnboardingForm from "@/components/ui/CustomerOnboardingForm";
 import ProfessionalOnboardingForm from "@/components/ui/ProfessionalOnboardingForm";
 import { Layout, Breadcrumb, theme } from "antd";
 
@@ -19,7 +20,15 @@ export default function Dashboard() {
           borderRadius: borderRadiusLG,
         }}
       >
-        <ProfessionalOnboardingForm />
+        <div
+          style={{
+            maxWidth: 1000,
+            margin: "0 auto",
+          }}
+        >
+          <CustomerOnboardingForm />
+          {/* <ProfessionalOnboardingForm /> */}
+        </div>
       </div>
     </Content>
   );
