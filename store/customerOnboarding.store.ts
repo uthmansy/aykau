@@ -1,18 +1,9 @@
+import { ServiceCategory } from "@/types/db";
 import { create } from "zustand";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────
-
-export type ServiceCategory =
-  | "home-services"
-  | "events"
-  | "wellness"
-  | "tech"
-  | "creative"
-  | "lessons"
-  | "automotive"
-  | "business";
 
 export type CommunicationPref = "email" | "phone" | "whatsapp" | "in-app";
 

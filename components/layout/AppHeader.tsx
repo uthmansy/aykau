@@ -77,6 +77,23 @@ export default function AppHeader() {
       path: "/dashboard/my-requests",
     },
     {
+      key: "jobs",
+      label: (
+        <Link
+          href="/dashboard/jobs"
+          style={{
+            color: "inherit",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span>Jobs</span>
+        </Link>
+      ),
+      path: "/dashboard/jobs",
+    },
+    {
       key: "settings",
       label: (
         <Link

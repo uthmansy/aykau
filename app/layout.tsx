@@ -3,6 +3,7 @@ import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { App } from "antd";
 import "antd/dist/reset.css";
 import type { Metadata } from "next";
+import "./globals.css";
 
 import { Inter } from "next/font/google";
 

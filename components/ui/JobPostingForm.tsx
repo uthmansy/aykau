@@ -26,22 +26,13 @@ import { Grid } from "antd";
 import { NIGERIAN_STATES } from "@/constants/constants";
 import { useJobPostStore } from "@/store/jobPostForm.store";
 import { supabase } from "@/services/supabase/client";
+import { ServiceCategory } from "@/types/db";
 
 const { useBreakpoint } = Grid;
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────
-
-type ServiceCategory =
-  | "home-services"
-  | "events"
-  | "wellness"
-  | "tech"
-  | "creative"
-  | "lessons"
-  | "automotive"
-  | "other";
 
 export interface JobPostData {
   category?: ServiceCategory;
@@ -63,7 +54,7 @@ export interface JobPostData {
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
+export const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
   { value: "home-services", label: "🏠 Home Services" },
   { value: "events", label: "🎉 Events & Parties" },
   { value: "wellness", label: "💆 Health & Wellness" },
@@ -74,7 +65,7 @@ const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
   { value: "other", label: "📦 Other" },
 ];
 
-const SERVICE_SUBCATEGORIES: Record<
+export const SERVICE_SUBCATEGORIES: Record<
   ServiceCategory,
   { value: string; label: string }[]
 > = {
@@ -145,12 +136,6 @@ const URGENCY_OPTIONS = [
   { value: "this-week", label: "📅 Within this week" },
   { value: "this-month", label: "🗓️ Within this month" },
   { value: "planning", label: "🕐 Just planning / Flexible" },
-];
-
-const CONTACT_METHODS = [
-  { value: "email", label: "📧 Email" },
-  { value: "phone", label: "📞 Phone / SMS" },
-  { value: "whatsapp", label: "💬 WhatsApp" },
 ];
 
 // Dynamic fields config per subcategory
@@ -379,6 +364,7 @@ export default function JobPostingForm() {
 
       message.success("Request posted! You'll receive quotes within 24 hours.");
       setSubmitted(true);
+      reset();
     } catch (err: any) {
       console.error("Job post failed:", err);
       message.error(err.message || "Failed to submit request");
