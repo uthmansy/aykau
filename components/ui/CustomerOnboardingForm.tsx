@@ -10,22 +10,24 @@ import {
   Select,
   App,
   Avatar,
-  Upload,
+  Typography,
+  Tag,
 } from "antd";
-import { UploadOutlined, UserOutlined } from "@ant-design/icons";
+import { UserOutlined } from "@ant-design/icons";
 // 👇 Import the NEW customer store
 import { useCustomerOnboardingStore } from "@/store/customerOnboarding.store";
 import { Grid } from "antd";
-import { NIGERIAN_STATES } from "@/constants/constants";
-import {
-  getStates,
-  getLgasByState,
-  getLgaById,
-  formatLgaOptions,
-} from "@/lib/helpers/location";
 import LocationSelect from "./jobs/LocationSelect";
+import { supabase } from "@/services/supabase/client";
+import { useOnboardingFormInitialValues } from "@/hooks/useOnboardingFormInitialValues";
+import { appendOnboardingRole } from "@/lib/supabase/profiles";
+import { capitalize } from "@/lib/helpers/functions";
 
 const { useBreakpoint } = Grid;
+
+interface OnboardingFormProps {
+  onComplete?: () => void;
+}
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS (keep these in component or extract to /constants)
@@ -67,7 +69,9 @@ const BUDGET_STYLES = [
 // COMPONENT
 // ─────────────────────────────────────────────────────────────
 
-export default function CustomerOnboardingForm() {
+export default function CustomerOnboardingForm({
+  onComplete,
+}: OnboardingFormProps) {
   const [form] = Form.useForm();
   // 👇 Use the dedicated customer store
   const { step, setStep, updateData, data } = useCustomerOnboardingStore();
@@ -98,29 +102,74 @@ export default function CustomerOnboardingForm() {
         ...values,
         avatar: avatarFile?.name || data.avatar,
       };
-
       setLoading(true);
 
-      console.log("CUSTOMER PROFILE:", finalData);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      // TODO: Supabase insert here
-      // const { error } = await supabase
-      //   .from('customers')
-      //   .insert({ ...finalData, created_at: new Date(), status: 'active' });
+      // Handle avatar upload (optional)
+      let avatarUrl = data.avatar;
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split(".").pop();
+        const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
-      message.success(
-        "Profile created successfully! You can now post requests."
-      );
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, avatarFile, { upsert: true });
 
-      // Optional: reset store after success
-      // useCustomerOnboardingStore.getState().reset();
-    } catch {
-      message.error("Please complete required fields");
+        if (uploadError) throw uploadError;
+
+        avatarUrl = supabase.storage.from("avatars").getPublicUrl(fileName)
+          .data.publicUrl;
+      }
+
+      // 🎯 CALL THE HELPER for customer role
+      const roleUpdate = await appendOnboardingRole(user.id, "customer");
+
+      const profilePayload = {
+        id: user.id,
+        full_name: finalData.fullName,
+        phone: finalData.phone,
+        nin: finalData.nin,
+        bio: finalData.bio,
+        post_code: finalData.postCode,
+        address_preference: finalData.addressPreference,
+        lga_id: finalData.lgaId,
+        lga_name: finalData.lgaName,
+        state_code: finalData.state,
+        city: finalData.city,
+        coordinates: finalData.lgaCoordinates,
+        avatar_url: avatarUrl,
+
+        // Customer-specific data
+        customer_data: {
+          serviceInterests: finalData.serviceInterests,
+          responseTime: finalData.responseTime,
+          budgetStyle: finalData.budgetStyle,
+          communicationPrefs: finalData.communicationPrefs,
+        },
+
+        // 🔹 Merge the safe role update
+        ...roleUpdate,
+      };
+
+      const { error } = await supabase
+        .from("profiles")
+        .upsert(profilePayload, { onConflict: "id" });
+
+      if (error) throw error;
+
+      message.success("✅ Customer profile saved!");
+      onComplete?.();
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      message.error(err.message || "Failed to save profile");
     } finally {
       setLoading(false);
     }
   };
-
   const handleAvatarChange = (info: any) => {
     if (info.file.status === "done") {
       message.success(`${info.file.name} uploaded successfully`);
@@ -145,19 +194,6 @@ export default function CustomerOnboardingForm() {
           >
             <Input placeholder="e.g. Chioma Adeyemi" />
           </Form.Item>
-
-          <Form.Item
-            name="email"
-            label="Email Address"
-            rules={[
-              { required: false },
-              { type: "email", message: "Please enter a valid email" },
-            ]}
-            initialValue={data.email}
-          >
-            <Input placeholder="you@example.com" disabled />
-          </Form.Item>
-
           <Form.Item
             name="phone"
             label="Phone Number"
@@ -172,8 +208,19 @@ export default function CustomerOnboardingForm() {
           >
             <Input placeholder="08012345678" maxLength={11} />
           </Form.Item>
-          <Form.Item name="nin" label="NIN Number" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item
+            name="nin"
+            label="NIN Number"
+            rules={[
+              { required: true },
+              {
+                pattern: /^\d{11}$/,
+                message: "Enter a valid Nigerian NIN",
+              },
+            ]}
+            initialValue={data.nin}
+          >
+            <Input maxLength={11} />
           </Form.Item>
         </>
       ),
@@ -229,7 +276,7 @@ export default function CustomerOnboardingForm() {
 
     {
       title: "Location",
-      content: <LocationSelect updateData={updateData} />,
+      content: <LocationSelect data={data} updateData={updateData} />,
     },
 
     {
@@ -260,80 +307,417 @@ export default function CustomerOnboardingForm() {
     {
       title: "Review",
       content: (
-        <div>
-          <Card size="small" title="Profile Preview">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-                marginBottom: 16,
-              }}
-            >
-              {avatarFile ? (
-                <Avatar size={64} src={URL.createObjectURL(avatarFile)} />
-              ) : data.avatar ? (
-                <Avatar size={64} src={data.avatar as string} />
-              ) : (
-                <Avatar size={64} icon={<UserOutlined />} />
-              )}
-              <div>
-                <strong>{data.fullName || "Your Name"}</strong>
-                <div style={{ color: "#666", fontSize: 14 }}>{data.email}</div>
-                <div style={{ color: "#666", fontSize: 14 }}>{data.phone}</div>
-              </div>
-            </div>
-
-            <div style={{ lineHeight: "1.8", fontSize: 14 }}>
-              <p>
-                <strong>Location:</strong> {data.lgaName || data.city},{" "}
-                {data.state}
-                {data.lgaCoordinates && (
-                  <span className="text-gray-400 text-xs ml-2">
-                    📍 {data.lgaCoordinates.lat.toFixed(2)},{" "}
-                    {data.lgaCoordinates.lng.toFixed(2)}
-                  </span>
-                )}
-              </p>
-              <p>
-                <strong>Bio:</strong> {data.bio || "—"}
-              </p>
-              <p>
-                <strong>Interested in:</strong>{" "}
-                {(data.serviceInterests || []).join(", ") || "—"}
-              </p>
-              <p>
-                <strong>Contact via:</strong>{" "}
-                {(data.communicationPrefs || []).join(", ") || "—"}
-              </p>
-              <p>
-                <strong>Response time:</strong>{" "}
-                {data.responseTime?.replace("-", " ") || "—"}
-              </p>
-              <p>
-                <strong>Budget style:</strong> {data.budgetStyle || "—"}
-              </p>
-            </div>
-          </Card>
-
+        <div style={{ padding: "0", maxWidth: 560, margin: "0 auto" }}>
+          {/* 👤 Profile Header with Avatar */}
           <div
             style={{
-              marginTop: 16,
-              padding: "12px",
-              background: "#f0f9ff",
-              borderRadius: 8,
-              border: "1px solid #bae7ff",
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              marginBottom: 24,
+              paddingBottom: 16,
+              borderBottom: "1px dashed #e5e7eb",
             }}
           >
-            <small style={{ color: "#1890ff" }}>
-              ✅ Your profile is private. Only professionals you interact with
-              will see your details.
-            </small>
+            {avatarFile ? (
+              <Avatar size={64} src={URL.createObjectURL(avatarFile)} />
+            ) : data.avatar ? (
+              <Avatar size={64} src={data.avatar as string} />
+            ) : (
+              <Avatar
+                size={64}
+                icon={<UserOutlined />}
+                style={{ background: "#f5f5f5", color: "#8c8c8c" }}
+              />
+            )}
+            <div>
+              <Typography.Text
+                strong
+                style={{ fontSize: 18, display: "block" }}
+              >
+                {data.fullName || "Your Name"}
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+                {data.phone || "—"}
+              </Typography.Text>
+            </div>
+          </div>
+
+          {/* 🔍 Verify Header */}
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 16, marginBottom: 20, display: "block" }}
+          >
+            Verify your details before submitting
+          </Typography.Text>
+
+          {/* 👤 Personal Info */}
+          <div style={{ marginBottom: 20 }}>
+            <Typography.Text
+              type="secondary"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              Personal Information
+            </Typography.Text>
+            <div
+              style={{
+                background: "#fafafa",
+                borderRadius: 12,
+                padding: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Full Name
+                  </Typography.Text>
+                  <Typography.Text strong style={{ textAlign: "right" }}>
+                    {data.fullName || "—"}
+                  </Typography.Text>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Phone
+                  </Typography.Text>
+                  <Typography.Text style={{ textAlign: "right" }}>
+                    {data.phone || "—"}
+                  </Typography.Text>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    NIN
+                  </Typography.Text>
+                  <Typography.Text
+                    style={{ textAlign: "right", fontFamily: "monospace" }}
+                  >
+                    {data.nin
+                      ? data.nin.replace(/(\d{4})(\d{4})(\d{3})/, "$1 **** $3")
+                      : "—"}
+                  </Typography.Text>
+                </div>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Address Preference
+                  </Typography.Text>
+                  <Tag
+                    color="default"
+                    variant="solid"
+                    style={{ margin: 0, borderRadius: 6 }}
+                  >
+                    {data.addressPreference?.replace("-", " ") || "—"}
+                  </Tag>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 📍 Location */}
+          <div style={{ marginBottom: 20 }}>
+            <Typography.Text
+              type="secondary"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              Location
+            </Typography.Text>
+            <div
+              style={{
+                background: "#fafafa",
+                borderRadius: 12,
+                padding: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Area
+                  </Typography.Text>
+                  <Typography.Text style={{ textAlign: "right" }}>
+                    {[data.city, data.lgaName, data.state]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
+                  </Typography.Text>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Postal Code
+                  </Typography.Text>
+                  <Typography.Text style={{ textAlign: "right" }}>
+                    {data.postCode || "—"}
+                  </Typography.Text>
+                </div>
+                {data.lgaCoordinates && (
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                      Coordinates
+                    </Typography.Text>
+                    <Typography.Text
+                      style={{
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontSize: 12,
+                      }}
+                    >
+                      {data.lgaCoordinates.lat.toFixed(4)},{" "}
+                      {data.lgaCoordinates.lng.toFixed(4)}
+                    </Typography.Text>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 🔍 Service Preferences */}
+          {data.serviceInterests && data.serviceInterests?.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <Typography.Text
+                type="secondary"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  display: "block",
+                  marginBottom: 8,
+                }}
+              >
+                Service Preferences
+              </Typography.Text>
+              <div
+                style={{
+                  background: "#fafafa",
+                  borderRadius: 12,
+                  padding: 16,
+                  border: "1px solid #f0f0f0",
+                }}
+              >
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      paddingBottom: 12,
+                      borderBottom: "1px dashed #e5e7eb",
+                    }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                      Categories
+                    </Typography.Text>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      {data.serviceInterests &&
+                        data.serviceInterests.map((s) => (
+                          <Tag
+                            key={s}
+                            variant="solid"
+                            color="default"
+                            style={{ margin: 0, borderRadius: 6 }}
+                          >
+                            {capitalize(s)}
+                          </Tag>
+                        ))}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      paddingBottom: 12,
+                      borderBottom: "1px dashed #e5e7eb",
+                    }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                      Contact Via
+                    </Typography.Text>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      {data.communicationPrefs?.length ? (
+                        data.communicationPrefs.map((c) => (
+                          <Tag
+                            key={c}
+                            variant="solid"
+                            color="default"
+                            style={{ margin: 0, borderRadius: 6 }}
+                          >
+                            {capitalize(c)}
+                          </Tag>
+                        ))
+                      ) : (
+                        <Typography.Text type="secondary">
+                          Not specified
+                        </Typography.Text>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      paddingBottom: 12,
+                      borderBottom: "1px dashed #e5e7eb",
+                    }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                      Response Time
+                    </Typography.Text>
+                    <Tag
+                      color="default"
+                      variant="solid"
+                      style={{ margin: 0, borderRadius: 6 }}
+                    >
+                      {data.responseTime?.replace("-", " ") || "—"}
+                    </Tag>
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                      Budget Style
+                    </Typography.Text>
+                    <Tag
+                      color="default"
+                      variant="solid"
+                      style={{ margin: 0, borderRadius: 6 }}
+                    >
+                      {data.budgetStyle?.replace("-", " ") || "—"}
+                    </Tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 📝 Bio */}
+          <div style={{ marginBottom: 20 }}>
+            <Typography.Text
+              type="secondary"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              About You
+            </Typography.Text>
+            <div
+              style={{
+                background: "#fafafa",
+                borderRadius: 12,
+                padding: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Typography.Paragraph
+                ellipsis={{ rows: 4, expandable: true }}
+                style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}
+              >
+                {data.bio || "No bio provided."}
+              </Typography.Paragraph>
+            </div>
+          </div>
+
+          {/* ✅ Privacy Notice */}
+          <div
+            style={{
+              marginTop: 8,
+              padding: "12px 16px",
+              background: "#f0f9ff",
+              borderRadius: 12,
+              border: "1px solid #bae7ff",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>✅</span>
+            <Typography.Text
+              style={{ fontSize: 15, color: "#0369a1", lineHeight: 1.5 }}
+            >
+              Your profile is private. Only professionals you interact with will
+              see your details.
+            </Typography.Text>
           </div>
         </div>
       ),
     },
   ];
+
+  useOnboardingFormInitialValues("customer", useCustomerOnboardingStore, form);
 
   return (
     <Card>
@@ -367,10 +751,6 @@ export default function CustomerOnboardingForm() {
         {/* FORM */}
         <div style={{ flex: 1, width: "100%" }}>
           <h2 style={{ marginBottom: 8 }}>{steps[step].title}</h2>
-          <p style={{ color: "#666", marginBottom: 24 }}>
-            Step {step + 1} of {steps.length}
-          </p>
-
           <Form form={form} layout="vertical">
             {steps[step].content}
 

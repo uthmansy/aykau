@@ -19,8 +19,8 @@ export interface CustomerOnboardingData {
   // Basic Info
   avatar?: string | File;
   fullName?: string;
-  email?: string;
   phone?: string;
+  nin?: string;
 
   // About You
   bio?: string;

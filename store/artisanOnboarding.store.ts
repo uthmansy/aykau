@@ -2,24 +2,31 @@ import { getLgaCoordinates } from "@/lib/helpers/location";
 import { create } from "zustand";
 
 export type OnboardingData = {
+  // 🔹 Common (both flows)
   fullName?: string;
-  email?: string;
+  avatar?: string | File;
   phone?: string;
-  profession?: string;
+  nin?: string;
+  bio?: string;
+  postCode?: string;
+  addressPreference?: string;
+  lgaId?: number;
+  lgaName?: string;
+  state?: string;
+  city?: string;
+  lgaCoordinates?: { lat: number; lng: number };
+
+  // 🔹 Artisan-only
+  professions?: string[];
   skills?: string[];
   experience?: string;
-  hourlyRate?: string;
-  location?: string;
-  bio?: string;
-  state?: string; // State name or code
-  lgaId?: number; // Selected LGA ID
-  lgaName?: string; // Selected LGA name (for display)
-  lgaCoordinates?: {
-    // Auto-populated when LGA selected
-    lat: number;
-    lng: number;
-  };
-  postCode?: string;
+  hourlyRate?: number;
+
+  // 🔹 Customer-only
+  serviceInterests?: string[];
+  responseTime?: string;
+  budgetStyle?: string;
+  communicationPrefs?: string[];
 };
 
 type OnboardingStore = {
