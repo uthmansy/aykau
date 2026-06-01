@@ -3,7 +3,7 @@
 import { useState } from "react";
 import CustomerOnboardingForm from "@/components/ui/CustomerOnboardingForm";
 import JobPostingForm from "@/components/ui/JobPostingForm";
-import ProfessionalOnboardingForm from "@/components/ui/ProfessionalOnboardingForm";
+import ArtisanOnboardingForm from "@/components/ui/ArtisanOnboardingForm";
 import { Layout, Button, Modal, theme } from "antd";
 import { PlusOutlined, RiseOutlined } from "@ant-design/icons";
 
@@ -34,7 +34,8 @@ export default function Dashboard() {
           boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
         }}
       >
-        <ProfessionalOnboardingForm />
+        <ArtisanOnboardingForm />
+        <CustomerOnboardingForm />
       </div>
 
       {/* 🪟 Modern Modal for Job Posting */}

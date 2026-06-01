@@ -17,6 +17,13 @@ import { UploadOutlined, UserOutlined } from "@ant-design/icons";
 import { useCustomerOnboardingStore } from "@/store/customerOnboarding.store";
 import { Grid } from "antd";
 import { NIGERIAN_STATES } from "@/constants/constants";
+import {
+  getStates,
+  getLgasByState,
+  getLgaById,
+  formatLgaOptions,
+} from "@/lib/helpers/location";
+import LocationSelect from "./jobs/LocationSelect";
 
 const { useBreakpoint } = Grid;
 
@@ -131,108 +138,6 @@ export default function CustomerOnboardingForm() {
       content: (
         <>
           <Form.Item
-            style={{
-              width: "12rem",
-            }}
-            label="Profile Photo"
-          >
-            <div>
-              <Upload
-                listType="picture-circle"
-                maxCount={1}
-                accept="image/*"
-                showUploadList={false} // 👈 Hide default list to avoid duplicate preview
-                beforeUpload={(file) => {
-                  const isImage = file.type.startsWith("image/");
-                  if (!isImage) {
-                    message.error("You can only upload image files!");
-                    return Upload.LIST_IGNORE;
-                  }
-                  const isLt2M = file.size / 1024 / 1024 < 2;
-                  if (!isLt2M) {
-                    message.error("Image must be smaller than 2MB!");
-                    return Upload.LIST_IGNORE;
-                  }
-                  return false; // Prevent auto-upload
-                }}
-                onChange={handleAvatarChange}
-              >
-                {/* Upload trigger area - fixed 104x104px square */}
-                <div
-                  style={{
-                    width: 104,
-                    height: 104,
-                    borderRadius: "50%",
-                    border: "1px dashed #d9d9d9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    backgroundColor: "#fafafa",
-                  }}
-                >
-                  {avatarFile || data.avatar ? (
-                    <>
-                      <img
-                        src={
-                          avatarFile
-                            ? URL.createObjectURL(avatarFile)
-                            : (data.avatar as string)
-                        }
-                        alt="avatar"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover", // 👈 Prevents stretching, maintains aspect ratio
-                          borderRadius: "50%",
-                        }}
-                      />
-                      {/* Optional: overlay remove button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setAvatarFile(null);
-                          // If you store avatar URL in data, clear it too:
-                          // updateData({ avatar: undefined });
-                        }}
-                        style={{
-                          position: "absolute",
-                          top: 4,
-                          right: 4,
-                          width: 24,
-                          height: 24,
-                          borderRadius: "50%",
-                          background: "rgba(0,0,0,0.6)",
-                          border: "none",
-                          color: "#fff",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 16,
-                          lineHeight: 1,
-                          padding: 0,
-                        }}
-                        aria-label="Remove photo"
-                      >
-                        ×
-                      </button>
-                    </>
-                  ) : (
-                    <div style={{ textAlign: "center", color: "#666" }}>
-                      <UploadOutlined style={{ fontSize: 24 }} />
-                      <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
-                    </div>
-                  )}
-                </div>
-              </Upload>
-            </div>
-          </Form.Item>
-
-          <Form.Item
             name="fullName"
             label="Full Name"
             rules={[{ required: true, message: "Please enter your name" }]}
@@ -266,6 +171,9 @@ export default function CustomerOnboardingForm() {
             initialValue={data.phone}
           >
             <Input placeholder="08012345678" maxLength={11} />
+          </Form.Item>
+          <Form.Item name="nin" label="NIN Number" rules={[{ required: true }]}>
+            <Input />
           </Form.Item>
         </>
       ),
@@ -321,74 +229,7 @@ export default function CustomerOnboardingForm() {
 
     {
       title: "Location",
-      content: (
-        <>
-          <Form.Item
-            name="state"
-            label="Which state are you based in?"
-            rules={[{ required: true, message: "Please select your state" }]}
-            initialValue={data.state}
-          >
-            <Select
-              placeholder="Select your state"
-              options={NIGERIAN_STATES.map((state) => ({
-                value: state,
-                label: state,
-              }))}
-              showSearch
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="city"
-            label="City / Area"
-            rules={[
-              { required: true, message: "Please enter your city or area" },
-            ]}
-            initialValue={data.city}
-          >
-            <Input placeholder="e.g. Ikeja, Lekki, Garki" />
-          </Form.Item>
-          <Form.Item
-            name="postCode"
-            label="Post Code"
-            rules={[{ required: true, message: "Please enter your Post Code" }]}
-            initialValue={data.postCode}
-          >
-            <Input placeholder="Your Post Code" />
-          </Form.Item>
-
-          <Form.Item
-            name="addressPreference"
-            label="How do you prefer to share your address?"
-            rules={[{ required: true }]}
-            extra="Your exact address is only shared with professionals you accept"
-            initialValue={data.addressPreference}
-          >
-            <Select
-              options={[
-                {
-                  value: "on-request",
-                  label: "Share only when I accept a professional",
-                },
-                {
-                  value: "after-booking",
-                  label: "Share after booking is confirmed",
-                },
-                {
-                  value: "landmark",
-                  label: "Share landmark only (no exact address)",
-                },
-              ]}
-            />
-          </Form.Item>
-        </>
-      ),
+      content: <LocationSelect updateData={updateData} />,
     },
 
     {
@@ -445,7 +286,14 @@ export default function CustomerOnboardingForm() {
 
             <div style={{ lineHeight: "1.8", fontSize: 14 }}>
               <p>
-                <strong>Location:</strong> {data.city}, {data.state}
+                <strong>Location:</strong> {data.lgaName || data.city},{" "}
+                {data.state}
+                {data.lgaCoordinates && (
+                  <span className="text-gray-400 text-xs ml-2">
+                    📍 {data.lgaCoordinates.lat.toFixed(2)},{" "}
+                    {data.lgaCoordinates.lng.toFixed(2)}
+                  </span>
+                )}
               </p>
               <p>
                 <strong>Bio:</strong> {data.bio || "—"}

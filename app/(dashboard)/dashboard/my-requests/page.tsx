@@ -3,7 +3,7 @@
 import { useState } from "react";
 import CustomerOnboardingForm from "@/components/ui/CustomerOnboardingForm";
 import JobPostingForm from "@/components/ui/JobPostingForm";
-import ProfessionalOnboardingForm from "@/components/ui/ProfessionalOnboardingForm";
+import ProfessionalOnboardingForm from "@/components/ui/ArtisanOnboardingForm";
 import { Layout, Button, Modal, theme } from "antd";
 import { PlusOutlined, RiseOutlined } from "@ant-design/icons";
 

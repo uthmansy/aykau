@@ -11,15 +11,18 @@ import {
   App,
   InputNumber,
 } from "antd";
-import { useOnboardingStore } from "@/store/onboarding.store";
+import { useArtisanOnboardingStore } from "@/store/artisanOnboarding.store";
 import { Grid } from "antd";
-import { NIGERIAN_STATES } from "@/constants/constants";
+import { getLgasByState } from "@/lib/helpers/location";
+import LocationSelect from "./jobs/LocationSelect";
 
 const { useBreakpoint } = Grid;
 
-export default function ProfessionalOnboardingForm() {
+export default function ArtisanOnboardingForm() {
   const [form] = Form.useForm();
-  const { step, setStep, updateData, data } = useOnboardingStore();
+  const stateCode = Form.useWatch("state", form);
+  const lgas = stateCode ? getLgasByState(stateCode) : [];
+  const { step, setStep, updateData, data } = useArtisanOnboardingStore();
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
 
@@ -72,10 +75,29 @@ export default function ProfessionalOnboardingForm() {
 
           <Form.Item
             name="email"
-            label="Email"
-            rules={[{ required: true, type: "email" }]}
+            label="Email Address"
+            rules={[
+              { required: false },
+              { type: "email", message: "Please enter a valid email" },
+            ]}
+            initialValue={data.email}
           >
-            <Input />
+            <Input placeholder="you@example.com" disabled />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="Phone Number"
+            rules={[
+              { required: true, message: "Please enter your phone number" },
+              {
+                pattern: /^0\d{10}$/,
+                message: "Enter a valid Nigerian number (e.g. 08012345678)",
+              },
+            ]}
+            initialValue={data.phone}
+          >
+            <Input placeholder="08012345678" maxLength={11} />
           </Form.Item>
           <Form.Item name="nin" label="NIN Number" rules={[{ required: true }]}>
             <Input />
@@ -172,37 +194,7 @@ export default function ProfessionalOnboardingForm() {
 
     {
       title: "Location",
-      content: (
-        <>
-          <Form.Item
-            name="location"
-            label="Where are you based?"
-            rules={[{ required: true, message: "Please select your state" }]}
-          >
-            <Select
-              placeholder="Select your state"
-              options={NIGERIAN_STATES.map((state) => ({
-                value: state,
-                label: state,
-              }))}
-              showSearch
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              style={{ width: "100%" }}
-            />
-          </Form.Item>
-          <Form.Item
-            name="postCode"
-            label="Post Code"
-            rules={[{ required: true }]}
-          >
-            <Input />
-          </Form.Item>
-        </>
-      ),
+      content: <LocationSelect updateData={updateData} />,
     },
 
     {

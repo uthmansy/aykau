@@ -1,5 +1,7 @@
+import { getLgaCoordinates } from "@/lib/helpers/location";
 import { ServiceCategory } from "@/types/db";
 import { create } from "zustand";
+import { OnboardingData } from "./artisanOnboarding.store";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -26,9 +28,17 @@ export interface CustomerOnboardingData {
 
   // Location
   state?: string;
-  city?: string;
+  lgaId?: number; // Selected LGA ID
+  lgaName?: string; // LGA name for display
+  city?: string; // Optional city/area text
+  lgaCoordinates?: {
+    // Auto-populated from LGA
+    lat: number;
+    lng: number;
+  };
+
   postCode?: string;
-  addressPreference?: AddressPreference;
+  addressPreference?: "on-request" | "after-booking" | "landmark";
 
   // Preferences
   communicationPrefs?: CommunicationPref[];
@@ -55,10 +65,18 @@ export const useCustomerOnboardingStore = create<CustomerOnboardingStore>(
 
     setStep: (step) => set({ step }),
 
-    updateData: (newData) =>
-      set((state) => ({
-        data: { ...state.data, ...newData },
-      })),
+    updateData: (newData: Partial<CustomerOnboardingData>) => {
+      set((state) => {
+        // If LGA changed, auto-fetch coordinates
+        if (newData.lgaId && newData.lgaId !== state.data.lgaId) {
+          const coords = getLgaCoordinates(newData.lgaId);
+          if (coords) {
+            newData.lgaCoordinates = coords;
+          }
+        }
+        return { data: { ...state.data, ...newData } };
+      });
+    },
 
     reset: () => set({ step: 0, data: {} }),
   })
