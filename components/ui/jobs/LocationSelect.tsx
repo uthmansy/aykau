@@ -11,10 +11,9 @@ import {
 
 interface Props {
   updateData: (data: any) => void;
-  data: any;
 }
 
-export default function LocationSelect({ updateData, data }: Props) {
+export default function LocationSelect({ updateData }: Props) {
   const form = Form.useFormInstance();
 
   // Reactive state watcher

@@ -129,7 +129,7 @@ export default function JobCard({
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500 min-w-0">
               <EnvironmentOutlined className="text-gray-400 shrink-0" />
-              <span className="truncate">{job.service_location}</span>
+              <span className="truncate">{job.state}</span>
             </div>
             {job.created_at && (
               <div className="flex items-center gap-1.5 text-xs text-gray-500">

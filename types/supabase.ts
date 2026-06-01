@@ -4,234 +4,286 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5";
-  };
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       job_photos: {
         Row: {
-          id: string;
-          job_id: string;
-          original_name: string | null;
-          size_bytes: number | null;
-          storage_path: string;
-          uploaded_at: string | null;
-        };
+          id: string
+          job_id: string
+          original_name: string | null
+          size_bytes: number | null
+          storage_path: string
+          uploaded_at: string | null
+        }
         Insert: {
-          id?: string;
-          job_id: string;
-          original_name?: string | null;
-          size_bytes?: number | null;
-          storage_path: string;
-          uploaded_at?: string | null;
-        };
+          id?: string
+          job_id: string
+          original_name?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_at?: string | null
+        }
         Update: {
-          id?: string;
-          job_id?: string;
-          original_name?: string | null;
-          size_bytes?: number | null;
-          storage_path?: string;
-          uploaded_at?: string | null;
-        };
+          id?: string
+          job_id?: string
+          original_name?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_at?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "job_photos_job_id_fkey";
-            columns: ["job_id"];
-            isOneToOne: false;
-            referencedRelation: "job_requests";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
+            foreignKeyName: "job_photos_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_quotes: {
         Row: {
-          availability_note: string | null;
-          created_at: string | null;
-          id: string;
-          job_id: string;
-          message: string;
-          portfolio_links: string[] | null;
-          professional_id: string;
-          quoted_price: number | null;
-          quoted_price_note: string | null;
-          responded_at: string | null;
-          status: string | null;
-        };
+          availability_note: string | null
+          created_at: string | null
+          id: string
+          job_id: string
+          message: string
+          portfolio_links: string[] | null
+          professional_id: string
+          quoted_price: number | null
+          quoted_price_note: string | null
+          responded_at: string | null
+          status: string | null
+        }
         Insert: {
-          availability_note?: string | null;
-          created_at?: string | null;
-          id?: string;
-          job_id: string;
-          message: string;
-          portfolio_links?: string[] | null;
-          professional_id: string;
-          quoted_price?: number | null;
-          quoted_price_note?: string | null;
-          responded_at?: string | null;
-          status?: string | null;
-        };
+          availability_note?: string | null
+          created_at?: string | null
+          id?: string
+          job_id: string
+          message: string
+          portfolio_links?: string[] | null
+          professional_id: string
+          quoted_price?: number | null
+          quoted_price_note?: string | null
+          responded_at?: string | null
+          status?: string | null
+        }
         Update: {
-          availability_note?: string | null;
-          created_at?: string | null;
-          id?: string;
-          job_id?: string;
-          message?: string;
-          portfolio_links?: string[] | null;
-          professional_id?: string;
-          quoted_price?: number | null;
-          quoted_price_note?: string | null;
-          responded_at?: string | null;
-          status?: string | null;
-        };
+          availability_note?: string | null
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          message?: string
+          portfolio_links?: string[] | null
+          professional_id?: string
+          quoted_price?: number | null
+          quoted_price_note?: string | null
+          responded_at?: string | null
+          status?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "job_quotes_job_id_fkey";
-            columns: ["job_id"];
-            isOneToOne: false;
-            referencedRelation: "job_requests";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
+            foreignKeyName: "job_quotes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_requests: {
         Row: {
-          access_notes: string | null;
-          address: string | null;
-          budget: string;
-          category: Database["public"]["Enums"]["service_category"];
-          contact_methods: string[] | null;
-          created_at: string | null;
-          custom_details: Json | null;
-          customer_id: string;
-          description: string;
-          expires_at: string | null;
-          frequency: string | null;
-          id: string;
-          photo_urls: string[] | null;
-          preferred_date: string | null;
-          quote_count: number | null;
-          search_vector: unknown;
-          service_location: string;
-          service_type: Database["public"]["Enums"]["service_location_type"];
-          status: Database["public"]["Enums"]["job_status"] | null;
-          subcategory: string;
-          updated_at: string | null;
-          urgency: string;
-          viewed_count: number | null;
-        };
+          access_notes: string | null
+          address: string | null
+          budget: string
+          category: Database["public"]["Enums"]["service_category"]
+          city: string | null
+          contact_methods: string[] | null
+          coordinates: Json | null
+          created_at: string | null
+          custom_details: Json | null
+          customer_id: string
+          description: string
+          expires_at: string | null
+          frequency: string | null
+          id: string
+          lga_id: number | null
+          lga_name: string | null
+          photo_urls: string[] | null
+          preferred_date: string | null
+          quote_count: number | null
+          service_type: Database["public"]["Enums"]["service_location_type"]
+          state: string | null
+          state_code: string | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          subcategory: string
+          updated_at: string | null
+          urgency: string
+          viewed_count: number | null
+        }
         Insert: {
-          access_notes?: string | null;
-          address?: string | null;
-          budget: string;
-          category: Database["public"]["Enums"]["service_category"];
-          contact_methods?: string[] | null;
-          created_at?: string | null;
-          custom_details?: Json | null;
-          customer_id: string;
-          description: string;
-          expires_at?: string | null;
-          frequency?: string | null;
-          id?: string;
-          photo_urls?: string[] | null;
-          preferred_date?: string | null;
-          quote_count?: number | null;
-          search_vector?: unknown;
-          service_location: string;
-          service_type: Database["public"]["Enums"]["service_location_type"];
-          status?: Database["public"]["Enums"]["job_status"] | null;
-          subcategory: string;
-          updated_at?: string | null;
-          urgency: string;
-          viewed_count?: number | null;
-        };
+          access_notes?: string | null
+          address?: string | null
+          budget: string
+          category: Database["public"]["Enums"]["service_category"]
+          city?: string | null
+          contact_methods?: string[] | null
+          coordinates?: Json | null
+          created_at?: string | null
+          custom_details?: Json | null
+          customer_id: string
+          description: string
+          expires_at?: string | null
+          frequency?: string | null
+          id?: string
+          lga_id?: number | null
+          lga_name?: string | null
+          photo_urls?: string[] | null
+          preferred_date?: string | null
+          quote_count?: number | null
+          service_type: Database["public"]["Enums"]["service_location_type"]
+          state?: string | null
+          state_code?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          subcategory: string
+          updated_at?: string | null
+          urgency: string
+          viewed_count?: number | null
+        }
         Update: {
-          access_notes?: string | null;
-          address?: string | null;
-          budget?: string;
-          category?: Database["public"]["Enums"]["service_category"];
-          contact_methods?: string[] | null;
-          created_at?: string | null;
-          custom_details?: Json | null;
-          customer_id?: string;
-          description?: string;
-          expires_at?: string | null;
-          frequency?: string | null;
-          id?: string;
-          photo_urls?: string[] | null;
-          preferred_date?: string | null;
-          quote_count?: number | null;
-          search_vector?: unknown;
-          service_location?: string;
-          service_type?: Database["public"]["Enums"]["service_location_type"];
-          status?: Database["public"]["Enums"]["job_status"] | null;
-          subcategory?: string;
-          updated_at?: string | null;
-          urgency?: string;
-          viewed_count?: number | null;
-        };
+          access_notes?: string | null
+          address?: string | null
+          budget?: string
+          category?: Database["public"]["Enums"]["service_category"]
+          city?: string | null
+          contact_methods?: string[] | null
+          coordinates?: Json | null
+          created_at?: string | null
+          custom_details?: Json | null
+          customer_id?: string
+          description?: string
+          expires_at?: string | null
+          frequency?: string | null
+          id?: string
+          lga_id?: number | null
+          lga_name?: string | null
+          photo_urls?: string[] | null
+          preferred_date?: string | null
+          quote_count?: number | null
+          service_type?: Database["public"]["Enums"]["service_location_type"]
+          state?: string | null
+          state_code?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          subcategory?: string
+          updated_at?: string | null
+          urgency?: string
+          viewed_count?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "job_requests_customer_profile_fkey";
-            columns: ["customer_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
+            foreignKeyName: "job_requests_customer_profile_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
-          avatar_url: string | null;
-          full_name: string | null;
-          id: string;
-          is_verified: boolean;
-          role: Database["public"]["Enums"]["user_role"] | null;
-          updated_at: string | null;
-          username: string | null;
-          website: string | null;
-        };
+          address_preference: string | null
+          artisan_data: Json | null
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          completed_onboarding_roles: string[] | null
+          coordinates: Json | null
+          current_active_role: Database["public"]["Enums"]["user_role"] | null
+          customer_data: Json | null
+          full_name: string | null
+          id: string
+          is_verified: boolean
+          lga_id: number | null
+          lga_name: string | null
+          nin: string | null
+          onboarding_completed_at: string | null
+          phone: string | null
+          post_code: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          state_code: string | null
+          updated_at: string | null
+          username: string | null
+          website: string | null
+        }
         Insert: {
-          avatar_url?: string | null;
-          full_name?: string | null;
-          id: string;
-          is_verified?: boolean;
-          role?: Database["public"]["Enums"]["user_role"] | null;
-          updated_at?: string | null;
-          username?: string | null;
-          website?: string | null;
-        };
+          address_preference?: string | null
+          artisan_data?: Json | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          completed_onboarding_roles?: string[] | null
+          coordinates?: Json | null
+          current_active_role?: Database["public"]["Enums"]["user_role"] | null
+          customer_data?: Json | null
+          full_name?: string | null
+          id: string
+          is_verified?: boolean
+          lga_id?: number | null
+          lga_name?: string | null
+          nin?: string | null
+          onboarding_completed_at?: string | null
+          phone?: string | null
+          post_code?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          state_code?: string | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
         Update: {
-          avatar_url?: string | null;
-          full_name?: string | null;
-          id?: string;
-          is_verified?: boolean;
-          role?: Database["public"]["Enums"]["user_role"] | null;
-          updated_at?: string | null;
-          username?: string | null;
-          website?: string | null;
-        };
-        Relationships: [];
-      };
-    };
+          address_preference?: string | null
+          artisan_data?: Json | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          completed_onboarding_roles?: string[] | null
+          coordinates?: Json | null
+          current_active_role?: Database["public"]["Enums"]["user_role"] | null
+          customer_data?: Json | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean
+          lga_id?: number | null
+          lga_name?: string | null
+          nin?: string | null
+          onboarding_completed_at?: string | null
+          phone?: string | null
+          post_code?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          state_code?: string | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+    }
     Views: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     Functions: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     Enums: {
-      job_status:
-        | "open"
-        | "in_progress"
-        | "completed"
-        | "cancelled"
-        | "expired";
+      job_status: "open" | "in_progress" | "completed" | "cancelled" | "expired"
       service_category:
         | "home-services"
         | "events"
@@ -240,135 +292,132 @@ export type Database = {
         | "creative"
         | "lessons"
         | "automotive"
-        | "other";
-      service_location_type: "home" | "business" | "remote" | "other";
-      user_role: "professional" | "admin" | "customer";
-    };
+        | "other"
+      service_location_type: "home" | "business" | "remote" | "other"
+      user_role: "artisan" | "admin" | "customer"
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-};
+      [_ in never]: never
+    }
+  }
+}
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  "public"
->];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R;
+      Row: infer R
     }
     ? R
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-      DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-      DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R;
-    }
-    ? R
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
     : never
-  : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I;
+      Insert: infer I
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-      Insert: infer I;
-    }
-    ? I
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
     : never
-  : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U;
+      Update: infer U
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-      Update: infer U;
-    }
-    ? U
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
     : never
-  : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never;
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never;
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
@@ -385,7 +434,7 @@ export const Constants = {
         "other",
       ],
       service_location_type: ["home", "business", "remote", "other"],
-      user_role: ["professional", "admin", "customer"],
+      user_role: ["artisan", "admin", "customer"],
     },
   },
-} as const;
+} as const

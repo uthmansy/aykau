@@ -129,7 +129,7 @@ export default function JobDetailDrawer({
         </span>
         <span className="flex items-center gap-1.5">
           <EnvironmentOutlined className="text-gray-400" />
-          {job.service_location}
+          {job.state_code}
         </span>
         {job.preferred_date && (
           <span className="flex items-center gap-1.5">

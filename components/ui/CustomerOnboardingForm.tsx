@@ -276,7 +276,7 @@ export default function CustomerOnboardingForm({
 
     {
       title: "Location",
-      content: <LocationSelect data={data} updateData={updateData} />,
+      content: <LocationSelect updateData={updateData} />,
     },
 
     {

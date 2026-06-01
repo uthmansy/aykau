@@ -57,7 +57,7 @@ export async function fetchJobs({
 
   // 📍 Location filter
   if (filters.location) {
-    query = query.eq("service_location", filters.location);
+    query = query.eq("state", filters.location);
   }
 
   // 💰 Budget range (simplified: filter by budget key)

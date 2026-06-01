@@ -247,7 +247,7 @@ export default function ArtisanOnboardingForm({
 
     {
       title: "Location",
-      content: <LocationSelect data={data} updateData={updateData} />,
+      content: <LocationSelect updateData={updateData} />,
     },
 
     {

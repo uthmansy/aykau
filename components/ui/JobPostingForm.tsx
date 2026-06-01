@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   Steps,
@@ -14,6 +14,7 @@ import {
   Tag,
   Tooltip,
   Checkbox,
+  Typography,
 } from "antd";
 import {
   UploadOutlined,
@@ -27,6 +28,8 @@ import { NIGERIAN_STATES } from "@/constants/constants";
 import { useJobPostStore } from "@/store/jobPostForm.store";
 import { supabase } from "@/services/supabase/client";
 import { ServiceCategory } from "@/types/db";
+import LocationSelect from "./jobs/LocationSelect";
+import MapPinSelector from "./MapPinSelector";
 
 const { useBreakpoint } = Grid;
 
@@ -41,6 +44,11 @@ export interface JobPostData {
   photos?: File[];
   serviceLocation?: string;
   address?: string;
+  lgaId?: number;
+  lgaName?: string;
+  state?: string;
+  lgaCoordinates?: { lat: number; lng: number };
+  mapCoordinates?: { lat: number; lng: number };
   serviceType?: "home" | "business" | "remote" | "other";
   budget?: string;
   urgency?: string;
@@ -250,6 +258,12 @@ export default function JobPostingForm() {
   const { message } = App.useApp();
   const { data, setStep, step, updateData, reset } = useJobPostStore();
 
+  const serviceLocationType = Form.useWatch("serviceType", form);
+  const showMap =
+    data.serviceType === "home" ||
+    data.serviceType === "business" ||
+    data.serviceType === "other";
+
   const [selectedCategory, setSelectedCategory] =
     useState<ServiceCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
@@ -265,18 +279,6 @@ export default function JobPostingForm() {
     if (!selectedSubcategory) return [];
     return DYNAMIC_FIELDS[selectedSubcategory] || [];
   }, [selectedSubcategory]);
-
-  const next = async () => {
-    try {
-      const values = await form.validateFields();
-      updateData(values);
-      setStep(step + 1);
-    } catch {
-      message.error("Please complete required fields");
-    }
-  };
-
-  const prev = () => setStep(step - 1);
 
   const submit = async () => {
     try {
@@ -345,7 +347,6 @@ export default function JobPostingForm() {
         subcategory: finalData.subcategory,
         description: finalData.description,
         photo_urls: photoPaths,
-        service_location: finalData.serviceLocation,
         address: finalData.address || null,
         service_type: finalData.serviceType,
         access_notes: values.accessNotes || null,
@@ -354,6 +355,10 @@ export default function JobPostingForm() {
         frequency: finalData.frequency || null,
         preferred_date: finalData.preferredDate || null,
         contact_methods: finalData.contactMethod || ["email"],
+        lga_id: finalData.lgaId,
+        lga_name: finalData.lgaName,
+        state: finalData.state,
+        coordinates: finalData.mapCoordinates,
         custom_details: customDetails,
         expires_at: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -414,70 +419,6 @@ export default function JobPostingForm() {
     newFiles.splice(index, 1);
     form.setFieldsValue({ photos: newFiles });
   };
-
-  // ─────────────────────────────────────────────────────────
-  // SUCCESS VIEW (after submission)
-  // ─────────────────────────────────────────────────────────
-  if (submitted) {
-    return (
-      <Card style={{ maxWidth: 600, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", padding: "40px 20px" }}>
-          <CheckCircleOutlined
-            style={{ fontSize: 64, color: "#52c41a", marginBottom: 16 }}
-          />
-          <h2 style={{ marginBottom: 8 }}>Request Posted! 🎉</h2>
-          <p style={{ color: "#666", marginBottom: 24 }}>
-            Professionals matching your request will contact you soon.
-          </p>
-
-          <div
-            style={{
-              background: "#f9f9f9",
-              padding: 16,
-              borderRadius: 8,
-              textAlign: "left",
-              marginBottom: 24,
-            }}
-          >
-            <p style={{ margin: "8px 0" }}>
-              <strong>📧</strong> Check your email for quote notifications
-            </p>
-            <p style={{ margin: "8px 0" }}>
-              <strong>📱</strong> You'll get SMS alerts for urgent requests
-            </p>
-            <p style={{ margin: "8px 0" }}>
-              <strong>🔔</strong> Manage responses in your dashboard
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <Button onClick={() => (window.location.href = "/dashboard")}>
-              Go to Dashboard
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => {
-                setSubmitted(false);
-                setStep(0);
-                reset();
-                form.resetFields();
-                setPhotoPreviews([]);
-              }}
-            >
-              Post Another Request
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  }
 
   // ─────────────────────────────────────────────────────────
   // FORM STEPS
@@ -658,40 +599,6 @@ export default function JobPostingForm() {
       content: (
         <>
           <Form.Item
-            name="serviceLocation"
-            label="Where do you need the service?"
-            rules={[{ required: true, message: "Please select a state" }]}
-            initialValue={data.serviceLocation}
-          >
-            <Select
-              placeholder="Select state"
-              options={NIGERIAN_STATES.map((state) => ({
-                value: state,
-                label: state,
-              }))}
-              showSearch
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              size={isMobile ? "middle" : "large"}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="address"
-            label="Address / Landmark (optional)"
-            extra="Your exact address is only shared with professionals you accept"
-            initialValue={data.address}
-          >
-            <Input
-              placeholder="e.g. Near Shoprite, Victoria Island"
-              size={isMobile ? "middle" : "large"}
-            />
-          </Form.Item>
-
-          <Form.Item
             name="serviceType"
             label="Service location type"
             rules={[{ required: true, message: "Please select an option" }]}
@@ -707,19 +614,66 @@ export default function JobPostingForm() {
               size={isMobile ? "middle" : "large"}
             />
           </Form.Item>
-          <Form.Item
-            name="accessNotes"
-            label="Access instructions (optional)"
-            extra="e.g. Gate code, parking info, building floor"
-          >
-            <Input.TextArea
-              rows={2}
-              placeholder="Help professionals arrive prepared"
-            />
-          </Form.Item>
+          {serviceLocationType !== "remote" && (
+            <>
+              <LocationSelect updateData={updateData} />
+              <Form.Item
+                name="address"
+                label="Address / Landmark (optional)"
+                extra="Your exact address is only shared with professionals you accept"
+                initialValue={data.address}
+              >
+                <Input
+                  placeholder="e.g. Near Shoprite, Victoria Island"
+                  size={isMobile ? "middle" : "large"}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="accessNotes"
+                label="Access instructions (optional)"
+                extra="e.g. Gate code, parking info, building floor"
+              >
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Help professionals arrive prepared"
+                />
+              </Form.Item>
+            </>
+          )}
         </>
       ),
     },
+    ...(showMap
+      ? [
+          {
+            title: "Map",
+            content: (
+              <Form.Item
+                name="mapCoordinates"
+                label="Map Coordinates"
+                rules={[
+                  {
+                    required: true,
+                    message:
+                      "Please click or drag the pin to select a location",
+                  },
+                ]}
+                // Ant Design expects `value` and `onChange` by default.
+                // No extra props needed here.
+              >
+                <MapPinSelector
+                  defaultCoords={{
+                    lat: data.lgaCoordinates?.lat || 0,
+                    lng: data.lgaCoordinates?.lng || 0,
+                  }}
+                  height="350px"
+                />
+              </Form.Item>
+            ),
+          },
+        ]
+      : []),
 
     {
       title: "Budget & Time",
@@ -814,10 +768,96 @@ export default function JobPostingForm() {
                 </p>
               )}
 
-              <p>
-                <strong>📍 Location:</strong> {data.serviceLocation}
-                {data.address ? `, ${data.address}` : ""}
-              </p>
+              <div style={{ marginBottom: 20 }}>
+                <Typography.Text
+                  type="secondary"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    display: "block",
+                    marginBottom: 8,
+                  }}
+                >
+                  Location
+                </Typography.Text>
+                <div
+                  style={{
+                    background: "#fafafa",
+                    borderRadius: 12,
+                    padding: 16,
+                    border: "1px solid #f0f0f0",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        paddingBottom: 12,
+                        borderBottom: "1px dashed #e5e7eb",
+                      }}
+                    >
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: 15 }}
+                      >
+                        Area
+                      </Typography.Text>
+                      <Typography.Text style={{ textAlign: "right" }}>
+                        {[
+                          data.lgaName,
+                          data.state,
+                          data.lgaCoordinates?.lat,
+                          data.lgaCoordinates?.lng,
+                        ]
+                          .filter(Boolean)
+                          .join(", ") || "—"}
+                      </Typography.Text>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        paddingBottom: 12,
+                        borderBottom: "1px dashed #e5e7eb",
+                      }}
+                    >
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: 15 }}
+                      >
+                        Map Coordinates
+                      </Typography.Text>
+                      <Typography.Text style={{ textAlign: "right" }}>
+                        {[data.mapCoordinates?.lat, data.mapCoordinates?.lng]
+                          .filter(Boolean)
+                          .join(", ") || "—"}
+                      </Typography.Text>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: 15 }}
+                      >
+                        Postal Code
+                      </Typography.Text>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <p>
                 <strong>🏠 Service at:</strong>{" "}
                 {{
@@ -871,13 +911,97 @@ export default function JobPostingForm() {
     },
   ];
 
+  const safeStep = Math.max(0, Math.min(step, steps.length - 1));
+  useEffect(() => {
+    if (step !== safeStep) {
+      setStep(safeStep);
+    }
+  }, [step, safeStep, setStep]);
+
+  const next = async () => {
+    try {
+      const values = await form.validateFields();
+      updateData(values);
+      setStep(safeStep + 1); // <-- Use safeStep
+    } catch {
+      message.error("Please complete required fields");
+    }
+  };
+
+  const prev = () => setStep(safeStep - 1); // <-- Use safeStep
+
+  // ─────────────────────────────────────────────────────────
+  // SUCCESS VIEW (after submission)
+  // ─────────────────────────────────────────────────────────
+  if (submitted) {
+    return (
+      <Card style={{ maxWidth: 600, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", padding: "40px 20px" }}>
+          <CheckCircleOutlined
+            style={{ fontSize: 64, color: "#52c41a", marginBottom: 16 }}
+          />
+          <h2 style={{ marginBottom: 8 }}>Request Posted! 🎉</h2>
+          <p style={{ color: "#666", marginBottom: 24 }}>
+            Professionals matching your request will contact you soon.
+          </p>
+
+          <div
+            style={{
+              background: "#f9f9f9",
+              padding: 16,
+              borderRadius: 8,
+              textAlign: "left",
+              marginBottom: 24,
+            }}
+          >
+            <p style={{ margin: "8px 0" }}>
+              <strong>📧</strong> Check your email for quote notifications
+            </p>
+            <p style={{ margin: "8px 0" }}>
+              <strong>📱</strong> You'll get SMS alerts for urgent requests
+            </p>
+            <p style={{ margin: "8px 0" }}>
+              <strong>🔔</strong> Manage responses in your dashboard
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <Button onClick={() => (window.location.href = "/dashboard")}>
+              Go to Dashboard
+            </Button>
+            <Button
+              type="primary"
+              onClick={() => {
+                setSubmitted(false);
+                setStep(0);
+                reset();
+                form.resetFields();
+                setPhotoPreviews([]);
+              }}
+            >
+              Post Another Request
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card style={{ maxWidth: 800, margin: "0 auto" }}>
       {/* Progress Header */}
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ margin: "0 0 8px" }}>Post a Request</h2>
         <p style={{ margin: 0, color: "#666" }}>
-          Step {step + 1} of {steps.length} • {steps[step].title}
+          Step {safeStep + 1} of {steps.length} • {steps[safeStep].title}{" "}
+          {/* <-- Updated */}
         </p>
       </div>
 
@@ -893,7 +1017,7 @@ export default function JobPostingForm() {
         <div style={{ width: isMobile ? "100%" : 180, flexShrink: 0 }}>
           <Steps
             orientation={isMobile ? "horizontal" : "vertical"}
-            current={step}
+            current={safeStep} // <-- Updated
             items={steps.map((s) => ({ title: s.title }))}
             size="small"
             style={{ overflowX: isMobile ? "auto" : "visible" }}
@@ -905,8 +1029,7 @@ export default function JobPostingForm() {
           <Divider style={{ margin: "0 0 24px" }} dashed />
 
           <Form form={form} layout="vertical" onFinish={submit}>
-            {steps[step].content}
-
+            {steps[safeStep].content} {/* <-- Updated */}
             {/* Navigation Buttons */}
             <div
               style={{
@@ -918,7 +1041,7 @@ export default function JobPostingForm() {
                 gap: 12,
               }}
             >
-              {step > 0 && (
+              {safeStep > 0 && ( // <-- Updated
                 <Button onClick={prev} size={isMobile ? "middle" : "large"}>
                   ← Back
                 </Button>
@@ -932,9 +1055,10 @@ export default function JobPostingForm() {
                   flexWrap: "wrap",
                 }}
               >
-                {/* Save Draft - optional */}
-                {step < steps.length - 1 && (
+                {/* Save Draft */}
+                {safeStep < steps.length - 1 && ( // <-- Updated
                   <Button
+                    htmlType="button"
                     onClick={() => {
                       form
                         .validateFields()
@@ -954,15 +1078,13 @@ export default function JobPostingForm() {
                   </Button>
                 )}
 
-                {step < steps.length - 1 ? (
-                  <Button
-                    type="primary"
-                    onClick={next}
-                    size={isMobile ? "middle" : "large"}
-                  >
-                    Next →
+                {safeStep < steps.length - 1 && ( // <-- Updated
+                  <Button type="primary" onClick={next}>
+                    Next
                   </Button>
-                ) : (
+                )}
+
+                {safeStep === steps.length - 1 && ( // <-- Updated
                   <Button
                     type="primary"
                     htmlType="submit"
