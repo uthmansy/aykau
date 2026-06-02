@@ -12,7 +12,7 @@ export default function JobsLoading() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Filters */}
-        <div className="lg:w-64 flex-shrink-0">
+        <div className="lg:w-64 shrink-0">
           <Card>
             <Skeleton active title={false} paragraph={{ rows: 10 }} />
           </Card>
@@ -21,7 +21,7 @@ export default function JobsLoading() {
         {/* Jobs Grid */}
         <div className="flex-1">
           <div className="flex justify-end mb-4">
-            <div className="w-[200px] h-[32px] bg-gray-200 rounded animate-pulse" />
+            <div className="w-50 h-8 bg-gray-200 rounded animate-pulse" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

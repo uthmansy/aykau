@@ -28,6 +28,7 @@ import {
 } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
 import { SERVICE_CATEGORIES, SERVICE_SUBCATEGORIES } from "../JobPostingForm";
+import Link from "next/link";
 
 interface Props {
   job: JobListing | null;
@@ -462,18 +463,20 @@ export default function JobDetailDrawer({
         {/* Sticky Footer Action */}
         {!job.is_expired && (
           <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-6 py-4">
-            <Button
-              type="primary"
-              size="large"
-              className="w-full h-12 text-base font-medium bg-linear-to-r from-blue-600 to-indigo-600 border-0 hover:from-blue-700 hover:to-indigo-700 shadow-sm"
-              icon={<MessageOutlined />}
-              onClick={() => {
-                onClose();
-                onQuoteClick?.(job.id);
-              }}
-            >
-              Send Quote to {posterName}
-            </Button>
+            <Link href={`jobs/send-quote/${job.id}`}>
+              <Button
+                type="primary"
+                size="large"
+                className="w-full h-12 text-base font-medium bg-linear-to-r from-blue-600 to-indigo-600 border-0 hover:from-blue-700 hover:to-indigo-700 shadow-sm"
+                icon={<MessageOutlined />}
+                // onClick={() => {
+                //   onClose();
+                //   onQuoteClick?.(job.id);
+                // }}
+              >
+                Send Quote to {posterName}
+              </Button>
+            </Link>
             <p className="text-xs text-gray-400 text-center mt-2">
               You'll be able to discuss details before confirming
             </p>
