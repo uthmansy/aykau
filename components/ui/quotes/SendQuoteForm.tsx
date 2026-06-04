@@ -162,7 +162,6 @@ function SendQuoteForm({
             rules={[{ type: "number", min: 0, message: "Must be positive" }]}
           >
             <InputNumber
-              className="w-full rounded-lg"
               placeholder="e.g. 50000"
               formatter={(value) =>
                 `₦ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")

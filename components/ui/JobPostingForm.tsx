@@ -41,6 +41,7 @@ export interface JobPostData {
   category?: ServiceCategory;
   subcategory?: string;
   description?: string;
+  title?: string;
   photos?: File[];
   serviceLocation?: string;
   address?: string;
@@ -346,6 +347,7 @@ export default function JobPostingForm() {
         category: finalData.category,
         subcategory: finalData.subcategory,
         description: finalData.description,
+        title: finalData.title,
         photo_urls: photoPaths,
         address: finalData.address || null,
         service_type: finalData.serviceType,
@@ -514,6 +516,12 @@ export default function JobPostingForm() {
       title: "More Info",
       content: (
         <>
+          <Form.Item name="title" label="Job Title" initialValue={data.title}>
+            <Input
+              placeholder="e.g. Interior Designer Needed For my New Apartment."
+              size={isMobile ? "middle" : "large"}
+            />
+          </Form.Item>
           <Form.Item
             name="description"
             label="Describe what you need"
@@ -757,6 +765,9 @@ export default function JobPostingForm() {
                 {SERVICE_SUBCATEGORIES[data.category as ServiceCategory]?.find(
                   (s) => s.value === data.subcategory
                 )?.label || data.subcategory}
+              </p>
+              <p>
+                <strong>📝 Title:</strong> {data.title || "—"}
               </p>
               <p>
                 <strong>📝 Description:</strong> {data.description || "—"}

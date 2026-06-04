@@ -37,7 +37,7 @@ function JobDetailSummary({ job }: Props) {
     <div className="lg:col-span-1">
       <Card
         title={<span className="font-semibold text-gray-900">Job Summary</span>}
-        className="sticky top-6 rounded-xl shadow-sm border-gray-100"
+        className="sticky rounded-xl shadow-sm border-gray-100"
         styles={{
           body: { padding: "16px" },
           header: { borderBottom: "1px solid #f3f4f6", padding: "16px" },

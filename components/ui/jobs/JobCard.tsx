@@ -103,7 +103,7 @@ export default function JobCard({
               isCompact ? "text-sm line-clamp-2" : "text-base line-clamp-2"
             }`}
           >
-            {subcategoryConfig?.label || job.subcategory}
+            {job.title}
           </h3>
 
           {/* ───────── Description ───────── */}

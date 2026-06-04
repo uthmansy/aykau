@@ -51,45 +51,58 @@ export type Database = {
       }
       job_quotes: {
         Row: {
+          artisan_id: string
           availability_note: string | null
           created_at: string | null
           id: string
+          is_viewed: boolean
           job_id: string
           message: string
           portfolio_links: string[] | null
-          professional_id: string
           quoted_price: number | null
           quoted_price_note: string | null
           responded_at: string | null
-          status: string | null
+          status: Database["public"]["Enums"]["quote_status"] | null
+          viewed_at: string | null
         }
         Insert: {
+          artisan_id: string
           availability_note?: string | null
           created_at?: string | null
           id?: string
+          is_viewed?: boolean
           job_id: string
           message: string
           portfolio_links?: string[] | null
-          professional_id: string
           quoted_price?: number | null
           quoted_price_note?: string | null
           responded_at?: string | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["quote_status"] | null
+          viewed_at?: string | null
         }
         Update: {
+          artisan_id?: string
           availability_note?: string | null
           created_at?: string | null
           id?: string
+          is_viewed?: boolean
           job_id?: string
           message?: string
           portfolio_links?: string[] | null
-          professional_id?: string
           quoted_price?: number | null
           quoted_price_note?: string | null
           responded_at?: string | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["quote_status"] | null
+          viewed_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "job_quotes_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_quotes_job_id_fkey"
             columns: ["job_id"]
@@ -125,6 +138,7 @@ export type Database = {
           state_code: string | null
           status: Database["public"]["Enums"]["job_status"] | null
           subcategory: string
+          title: string
           updated_at: string | null
           urgency: string
           viewed_count: number | null
@@ -154,6 +168,7 @@ export type Database = {
           state_code?: string | null
           status?: Database["public"]["Enums"]["job_status"] | null
           subcategory: string
+          title: string
           updated_at?: string | null
           urgency: string
           viewed_count?: number | null
@@ -183,6 +198,7 @@ export type Database = {
           state_code?: string | null
           status?: Database["public"]["Enums"]["job_status"] | null
           subcategory?: string
+          title?: string
           updated_at?: string | null
           urgency?: string
           viewed_count?: number | null
@@ -191,6 +207,50 @@ export type Database = {
           {
             foreignKeyName: "job_requests_customer_profile_fkey"
             columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          metadata: Json | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -280,10 +340,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_notification: {
+        Args: {
+          p_link?: string
+          p_message: string
+          p_metadata?: Json
+          p_title: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+          p_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       job_status: "open" | "in_progress" | "completed" | "cancelled" | "expired"
+      notification_type:
+        | "info"
+        | "success"
+        | "warning"
+        | "new_quote"
+        | "quote_accepted"
+        | "quote_declined"
+        | "job_expired"
+        | "system"
+      quote_status:
+        | "pending"
+        | "responded"
+        | "accepted"
+        | "declined"
+        | "withdrawn"
       service_category:
         | "home-services"
         | "events"
@@ -423,6 +508,23 @@ export const Constants = {
   public: {
     Enums: {
       job_status: ["open", "in_progress", "completed", "cancelled", "expired"],
+      notification_type: [
+        "info",
+        "success",
+        "warning",
+        "new_quote",
+        "quote_accepted",
+        "quote_declined",
+        "job_expired",
+        "system",
+      ],
+      quote_status: [
+        "pending",
+        "responded",
+        "accepted",
+        "declined",
+        "withdrawn",
+      ],
       service_category: [
         "home-services",
         "events",

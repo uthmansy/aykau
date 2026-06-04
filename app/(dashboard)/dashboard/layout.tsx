@@ -74,20 +74,11 @@ export default function DashboardLayout({
       <AppHeader />
 
       <Layout>
-        {/* <Sider width={200} style={{ background: colorBgContainer }}>
-          <Menu
-            mode="inline"
-            defaultSelectedKeys={["1"]}
-            defaultOpenKeys={["sub1"]}
-            style={{ height: "100%", borderInlineEnd: 0 }}
-            items={items2}
-          />
-        </Sider> */}
-        <Layout.Content style={{ padding: 20 }}>{children}</Layout.Content>
+        <Layout.Content>{children}</Layout.Content>
       </Layout>
-      <Footer style={{ textAlign: "center" }}>
+      {/* <Footer style={{ textAlign: "center" }}>
         Aykau ©{currentYear} All rights reserved.
-      </Footer>
+      </Footer> */}
     </Layout>
   );
 }
