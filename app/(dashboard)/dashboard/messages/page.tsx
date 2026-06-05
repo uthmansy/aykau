@@ -8,6 +8,7 @@ import { supabase } from "@/services/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
 import ConversationList from "@/components/ui/chat/ConversationList";
 import ChatWindow from "@/components/ui/chat/ChatWindow";
+import ChatSidebar from "@/components/ui/chat/ChatSidebar";
 
 export default function MessagesPage() {
   return (
@@ -226,6 +227,7 @@ function MessagesContent() {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex bg-white overflow-hidden">
+      {/* 1. Left Sidebar: Conversation List */}
       <div className="w-full md:w-96 border-r border-gray-200 flex flex-col flex-shrink-0">
         <ConversationList
           conversations={conversations}
@@ -234,9 +236,18 @@ function MessagesContent() {
           currentUserId={userId!}
         />
       </div>
+
+      {/* 2. Center: Chat Window */}
       <div className="flex-1 flex flex-col min-w-0">
         <ChatWindow conversation={selectedConvo} currentUserId={userId!} />
       </div>
+
+      {/* 3. Right Sidebar: Job & Quote Context (NEW) */}
+      {selectedConvo && (
+        <div className="hidden lg:flex w-80 border-l border-gray-200 flex-col flex-shrink-0">
+          <ChatSidebar conversation={selectedConvo} currentUserId={userId!} />
+        </div>
+      )}
     </div>
   );
 }

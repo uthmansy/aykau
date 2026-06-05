@@ -1,6 +1,7 @@
-// components/messages/ChatWindow.tsx
+// components/ui/chat/ChatWindow.tsx
 "use client";
 
+import { useState } from "react";
 import { Typography, Avatar, Button } from "antd";
 import { UserOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import MessageList from "./MessageList";
@@ -14,7 +15,9 @@ interface Props {
 }
 
 export default function ChatWindow({ conversation, currentUserId }: Props) {
-  // Empty State
+  // 🟢 Manage reply state HERE, in the parent component
+  const [replyingTo, setReplyingTo] = useState<any>(null);
+
   if (!conversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 text-center p-8">
@@ -33,7 +36,7 @@ export default function ChatWindow({ conversation, currentUserId }: Props) {
             />
           </svg>
         </div>
-        <Title level={4} className="text-gray-900! mb-1!">
+        <Title level={4} className="!text-gray-900 !mb-1">
           Select a conversation
         </Title>
         <Text type="secondary">
@@ -58,7 +61,6 @@ export default function ChatWindow({ conversation, currentUserId }: Props) {
           className="md:hidden !p-0"
           onClick={() => window.history.back()}
         />
-
         <Avatar
           src={otherPerson?.avatar_url}
           icon={<UserOutlined />}
@@ -75,16 +77,19 @@ export default function ChatWindow({ conversation, currentUserId }: Props) {
         </div>
       </div>
 
-      {/* Messages Area */}
+      {/* Messages Area (Pass the setter down) */}
       <MessageList
         conversationId={conversation.id}
         currentUserId={currentUserId}
+        onReply={setReplyingTo}
       />
 
-      {/* Input Area */}
+      {/* Input Area (Pass the state and cancel function down) */}
       <MessageInput
         conversationId={conversation.id}
         currentUserId={currentUserId}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
       />
     </div>
   );

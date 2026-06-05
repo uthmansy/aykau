@@ -85,7 +85,7 @@ export default function ConversationList({
                     <div className="flex justify-between items-baseline mb-0.5">
                       <Text
                         strong={unreadCount > 0}
-                        className={`text-sm truncate block max-w-[150px] transition-colors ${
+                        className={`text-sm! truncate! block max-w-[150px] transition-colors ${
                           unreadCount > 0 ? "text-gray-900" : "text-gray-700"
                         }`}
                       >
@@ -95,7 +95,7 @@ export default function ConversationList({
                       </Text>
                       {lastMsg && (
                         <Text
-                          className={`text-[11px] shrink-0 ml-2 transition-colors ${
+                          className={`text-[11px]! shrink-0 ml-2 transition-colors ${
                             unreadCount > 0
                               ? "text-gray-600 font-medium"
                               : "text-gray-400"
@@ -110,14 +110,14 @@ export default function ConversationList({
                     </div>
 
                     {/* Middle Row: Job Title */}
-                    <Text className="text-xs text-gray-500 block truncate mb-0.5 font-medium">
+                    <Text className="text-xs! text-gray-500 block truncate mb-0.5 font-medium">
                       {convo.job?.title || "Job Discussion"}
                     </Text>
 
                     {/* Bottom Row: Last Message Preview & Unread Badge */}
                     <div className="flex justify-between items-center">
                       <Text
-                        className={`text-xs block truncate transition-colors ${
+                        className={`text-xs! block truncate transition-colors ${
                           unreadCount > 0
                             ? "text-gray-700 font-medium"
                             : "text-gray-400"

@@ -60,7 +60,17 @@ export default function QuoteDetailModal({
       .eq("id", quote.id);
 
     if (error) {
-      message.error(`Failed to ${newStatus} quote.`);
+      // 🟢 Catch the specific database trigger error
+      if (
+        error.code === "P0001" &&
+        error.message.includes("job_already_filled")
+      ) {
+        message.warning(
+          "This job has already been assigned to another artisan."
+        );
+      } else {
+        message.error(`Failed to ${newStatus} quote.`);
+      }
     } else {
       message.success(`Quote ${newStatus} successfully!`);
       onActionComplete();
