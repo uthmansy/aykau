@@ -53,21 +53,43 @@ export default function QuoteDetailModal({
     }
   }, [open, quote?.id, quote?.is_viewed]);
 
+  // 🟢 UPDATED: Routes "Accept" to the atomic RPC, keeps direct update for Decline
   const handleStatusUpdate = async (newStatus: "accepted" | "declined") => {
-    const { error } = await supabase
-      .from("job_quotes")
-      .update({ status: newStatus })
-      .eq("id", quote.id);
+    let error: any = null;
 
+    // 1. Route "Accept" to the secure, atomic RPC
+    if (newStatus === "accepted") {
+      const { error: rpcError } = await supabase.rpc(
+        "accept_quote_and_create_contract",
+        { p_quote_id: quote.id }
+      );
+      error = rpcError;
+    }
+    // 2. Keep direct update for Decline
+    else {
+      const { error: updateError } = await supabase
+        .from("job_quotes")
+        .update({ status: newStatus })
+        .eq("id", quote.id);
+      error = updateError;
+    }
+
+    // 3. Handle Errors (Catching specific RPC exceptions)
     if (error) {
-      // 🟢 Catch the specific database trigger error
-      if (
-        error.code === "P0001" &&
-        error.message.includes("job_already_filled")
-      ) {
-        message.warning(
-          "This job has already been assigned to another artisan."
-        );
+      if (error.code === "P0001") {
+        if (error.message.includes("job_already_filled")) {
+          message.warning(
+            "This job has already been assigned to another artisan."
+          );
+        } else if (error.message.includes("already_accepted")) {
+          message.warning("This quote has already been accepted.");
+        } else if (error.message.includes("unauthorized")) {
+          message.error("You do not have permission to accept this quote.");
+        } else if (error.message.includes("quote_not_found")) {
+          message.error("This quote no longer exists.");
+        } else {
+          message.error(`Failed to ${newStatus} quote.`);
+        }
       } else {
         message.error(`Failed to ${newStatus} quote.`);
       }
@@ -149,24 +171,32 @@ export default function QuoteDetailModal({
       title="Quote Details"
       destroyOnHidden
       footer={
-        isActionable ? (
-          <div className="flex justify-between items-center pt-2">
-            <Button
-              danger
-              icon={<CloseCircleOutlined />}
-              onClick={() => handleStatusUpdate("declined")}
-              className="rounded-md"
-            >
-              Decline
-            </Button>
-            <Space>
+        // 🟢 NEW FOOTER LOGIC: Always show Message, conditionally show Accept/Decline
+        <div className="flex justify-between items-center pt-2">
+          {/* Left side: Decline button (only if actionable) */}
+          <div>
+            {isActionable && (
               <Button
-                icon={<MessageOutlined />}
-                onClick={handleRespond}
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleStatusUpdate("declined")}
                 className="rounded-md"
               >
-                Message
+                Decline
               </Button>
+            )}
+          </div>
+
+          {/* Right side: Message button (always visible) + Accept button (only if actionable) */}
+          <Space>
+            <Button
+              icon={<MessageOutlined />}
+              onClick={handleRespond}
+              className="rounded-md"
+            >
+              Message
+            </Button>
+            {isActionable && (
               <Button
                 type="primary"
                 icon={<CheckCircleOutlined />}
@@ -175,9 +205,9 @@ export default function QuoteDetailModal({
               >
                 Accept Quote
               </Button>
-            </Space>
-          </div>
-        ) : null
+            )}
+          </Space>
+        </div>
       }
     >
       {/* 1. Artisan Profile Header */}
