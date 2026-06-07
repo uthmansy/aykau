@@ -11,6 +11,8 @@ import {
   Timeline,
   Tooltip,
   Skeleton,
+  Modal,
+  App,
 } from "antd";
 import {
   EnvironmentOutlined,
@@ -25,10 +27,14 @@ import {
   PhoneOutlined,
   MailOutlined,
   ArrowLeftOutlined,
+  LockOutlined,
+  UnlockOutlined,
 } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
 import { SERVICE_CATEGORIES, SERVICE_SUBCATEGORIES } from "../JobPostingForm";
 import Link from "next/link";
+import { supabase } from "@/services/supabase/client";
+import { useAuthStore } from "@/store/auth.store";
 
 interface Props {
   job: JobListing | null;
@@ -43,15 +49,97 @@ export default function JobDetailDrawer({
   onClose,
   onQuoteClick,
 }: Props) {
-  const [loading, setLoading] = useState(false);
+  const { message } = App.useApp();
+  const userId = useAuthStore((state) => state.user?.id);
+  const userRole = useAuthStore((state) => state.user?.role);
 
-  // Optional: Fetch additional details when drawer opens
+  const [loading, setLoading] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
+  const [loadingUnlock, setLoadingUnlock] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+
+  // Determine user's relationship to this job
+  const isCustomer = job && userId && job.customer_id === userId;
+  const isArtisanViewer = userRole === "artisan" && !isCustomer;
+
+  // Check unlock status when drawer opens
   useEffect(() => {
-    if (open && job?.id) {
-      // Could fetch extended job details, activity, etc. here
-      // setLoading(true); ... then setLoading(false) when done
+    if (open && job?.id && userId && isArtisanViewer) {
+      checkUnlockStatus();
+    } else if (isCustomer) {
+      setIsUnlocked(true); // Customers always see everything
     }
-  }, [open, job?.id]);
+  }, [open, job?.id, userId, isArtisanViewer, isCustomer]);
+
+  const checkUnlockStatus = async () => {
+    if (!job?.id || !userId) return;
+
+    try {
+      // Check if already unlocked
+      const { data: unlockData } = await supabase
+        .from("unlocked_jobs")
+        .select("id")
+        .eq("job_id", job.id)
+        .eq("artisan_id", userId)
+        .eq("is_refunded", false)
+        .maybeSingle();
+
+      setIsUnlocked(!!unlockData);
+
+      // Fetch current credit balance
+      const { data: walletData } = await supabase
+        .from("wallets")
+        .select("credit_balance")
+        .eq("user_id", userId)
+        .single();
+
+      setCreditBalance(Number(walletData?.credit_balance || 0));
+    } catch (error) {
+      console.error("Error checking unlock status:", error);
+    }
+  };
+
+  const handleUnlockClick = () => {
+    const cost = job?.credit_cost || 10;
+    if (creditBalance >= cost) {
+      setShowConsentModal(true);
+    } else {
+      message.warning(
+        `You need ${cost} credits to unlock this job. Your balance is ${creditBalance}.`
+      );
+      // TODO: Open "Buy Credits" modal
+    }
+  };
+
+  const confirmUnlock = async () => {
+    if (!job?.id) return;
+
+    setLoadingUnlock(true);
+    try {
+      const { data, error } = await supabase.rpc("unlock_job", {
+        p_job_id: job.id,
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        message.success("Job unlocked successfully!");
+        setIsUnlocked(true);
+        setCreditBalance((prev) => prev - (job.credit_cost || 10));
+        setShowConsentModal(false);
+      }
+    } catch (error: any) {
+      console.error("Unlock error:", error);
+      if (error.message?.includes("insufficient_credits")) {
+        message.error("Insufficient credits. Please buy more credits.");
+      } else {
+        message.error("Failed to unlock job. Please try again.");
+      }
+    } finally {
+      setLoadingUnlock(false);
+    }
+  };
 
   if (!job) return null;
 
@@ -96,11 +184,22 @@ export default function JobDetailDrawer({
         >
           Back
         </Button>
-        {job.is_expired && (
-          <Tag color="default" className="font-medium">
-            Expired
-          </Tag>
-        )}
+        <div className="flex items-center gap-2">
+          {isArtisanViewer && !isUnlocked && (
+            <Tag
+              icon={<WalletOutlined />}
+              color="default"
+              className="!rounded-full !px-3 !py-1 !text-xs !font-medium"
+            >
+              Balance: {creditBalance} credits
+            </Tag>
+          )}
+          {job.is_expired && (
+            <Tag color="default" className="font-medium">
+              Expired
+            </Tag>
+          )}
+        </div>
       </div>
 
       {/* Category + Urgency */}
@@ -223,110 +322,161 @@ export default function JobDetailDrawer({
     </div>
   );
 
-  const AboutClientSection = () => (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-        About the Client
-      </h3>
+  const AboutClientSection = () => {
+    // 🔒 LOCKED STATE: Show blurred overlay for artisans who haven't unlocked
+    if (isArtisanViewer && !isUnlocked) {
+      return (
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+            About the Client
+          </h3>
 
-      <div className="flex items-start gap-4 p-4 bg-linear-to-br from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-100">
-        <Tooltip title={poster?.is_verified ? "Verified member" : undefined}>
-          <Badge
-            count={
-              poster?.is_verified ? (
-                <CheckCircleFilled style={{ color: "#10b981", fontSize: 16 }} />
-              ) : undefined
-            }
-            offset={[-5, 8]}
-          >
-            <Avatar
-              size={56}
-              src={poster?.avatar_url}
-              className="bg-linear-to-br from-blue-100 to-indigo-100 text-blue-600 border-2 border-white shadow-sm"
-              icon={<UserOutlined style={{ fontSize: 24 }} />}
-            />
-          </Badge>
-        </Tooltip>
+          <div className="relative">
+            {/* Blurred Content */}
+            <div className="opacity-30 pointer-events-none select-none filter blur-sm">
+              <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <Avatar
+                  size={56}
+                  icon={<UserOutlined />}
+                  className="bg-gray-200"
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-300 rounded w-32" />
+                  <div className="h-3 bg-gray-300 rounded w-24" />
+                </div>
+              </div>
+            </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="font-semibold text-gray-900">{posterName}</h4>
-            {poster?.is_verified && (
-              <Tag color="green" className="text-xs py-0 px-2 rounded-full">
-                Verified
-              </Tag>
-            )}
-          </div>
-
-          <div className="mt-2 space-y-1.5 text-sm text-gray-500">
-            {/* {poster?.location && (
-              <p className="flex items-center gap-1.5">
-                <EnvironmentOutlined className="text-gray-400" />
-                {poster.location}
+            {/* Overlay */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[2px] rounded-xl p-6">
+              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                <LockOutlined className="text-2xl text-gray-500" />
+              </div>
+              <p className="text-sm font-semibold text-gray-900 mb-1 text-center">
+                Unlock for {job.credit_cost || 10} Credits
               </p>
-            )}
-            {poster?.created_at && (
-              <p className="flex items-center gap-1.5">
-                <ClockCircleOutlined className="text-gray-400" />
-                Member since{" "}
-                {new Date(poster.created_at).toLocaleDateString("en-NG", {
-                  month: "short",
-                  year: "numeric",
-                })}
+              <p className="text-xs text-gray-500 mb-4 text-center max-w-xs">
+                View client contact details and send a quote
               </p>
-            )} */}
-            {/* Rating placeholder - uncomment when available */}
-            {/* {poster?.rating && (
-              <p className="flex items-center gap-1 text-amber-500">
-                <StarFilled />
-                <span className="text-gray-700">{poster.rating}</span>
-                {poster.reviews !== undefined && (
-                  <span className="text-gray-400">({poster.reviews} reviews)</span>
-                )}
-              </p>
-            )} */}
+              <Button
+                type="primary"
+                icon={<UnlockOutlined />}
+                onClick={handleUnlockClick}
+                loading={loadingUnlock}
+                className="!bg-gray-900 hover:!bg-gray-800 !border-0 !rounded-lg !h-10 !font-medium"
+              >
+                Unlock Now
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      );
+    }
 
-      {/* Contact Methods */}
-      {job.contact_methods?.length && job.contact_methods.length > 0 && (
-        <div>
-          <span className="text-xs font-medium text-gray-500 uppercase">
-            Preferred Contact
-          </span>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {job.contact_methods.map((method) => {
-              const config: Record<string, { icon: any; label: string }> = {
-                email: { icon: MailOutlined, label: "Email" },
-                phone: { icon: PhoneOutlined, label: "Phone" },
-                in_app: { icon: MessageOutlined, label: "In-App Message" },
-              };
-              const { icon: Icon, label } = config[method] || {
-                icon: MessageOutlined,
-                label: method,
-              };
-              return (
-                <Tag
-                  key={method}
-                  icon={<Icon className="text-gray-500" />}
-                  className="rounded-full py-1 px-3 text-sm"
-                >
-                  {label}
+    // ✅ UNLOCKED STATE or CUSTOMER VIEW
+    return (
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+          About the Client
+        </h3>
+
+        <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl border border-gray-200">
+          <Tooltip title={poster?.is_verified ? "Verified member" : undefined}>
+            <Badge
+              count={
+                poster?.is_verified ? (
+                  <CheckCircleFilled
+                    style={{ color: "#10b981", fontSize: 16 }}
+                  />
+                ) : undefined
+              }
+              offset={[-5, 8]}
+            >
+              <Avatar
+                size={56}
+                src={poster?.avatar_url}
+                className="bg-gradient-to-br from-gray-100 to-gray-200 text-gray-600 border-2 border-white shadow-sm"
+                icon={<UserOutlined style={{ fontSize: 24 }} />}
+              />
+            </Badge>
+          </Tooltip>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-semibold text-gray-900">{posterName}</h4>
+              {poster?.is_verified && (
+                <Tag color="green" className="text-xs py-0 px-2 rounded-full">
+                  Verified
                 </Tag>
-              );
-            })}
+              )}
+              {isUnlocked && isArtisanViewer && (
+                <Tag
+                  icon={<UnlockOutlined />}
+                  color="success"
+                  className="text-xs py-0 px-2 rounded-full"
+                >
+                  Unlocked
+                </Tag>
+              )}
+            </div>
+
+            <div className="mt-2 space-y-1.5 text-sm text-gray-500">
+              {/* Contact info - only shown when unlocked */}
+              {isUnlocked && (
+                <>
+                  {poster?.phone && (
+                    <p className="flex items-center gap-1.5">
+                      <PhoneOutlined className="text-gray-400" />
+                      {poster.phone}
+                    </p>
+                  )}
+                  {/* {poster?.email && (
+                    <p className="flex items-center gap-1.5">
+                      <MailOutlined className="text-gray-400" />
+                      {poster.email}
+                    </p>
+                  )} */}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      )}
 
-      {/* {poster?.bio && (
-        <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-3">
-          {poster.bio}
-        </p>
-      )} */}
-    </div>
-  );
+        {/* Contact Methods */}
+        {isUnlocked &&
+          job.contact_methods?.length &&
+          job.contact_methods.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-gray-500 uppercase">
+                Preferred Contact
+              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {job.contact_methods.map((method) => {
+                  const config: Record<string, { icon: any; label: string }> = {
+                    email: { icon: MailOutlined, label: "Email" },
+                    phone: { icon: PhoneOutlined, label: "Phone" },
+                    in_app: { icon: MessageOutlined, label: "In-App Message" },
+                  };
+                  const { icon: Icon, label } = config[method] || {
+                    icon: MessageOutlined,
+                    label: method,
+                  };
+                  return (
+                    <Tag
+                      key={method}
+                      icon={<Icon className="text-gray-500" />}
+                      className="rounded-full py-1 px-3 text-sm"
+                    >
+                      {label}
+                    </Tag>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+      </div>
+    );
+  };
 
   const JobActivitySection = () => {
     const activity = {
@@ -343,14 +493,14 @@ export default function JobDetailDrawer({
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
-            <EyeOutlined className="text-blue-500 text-xl mb-1" />
+            <EyeOutlined className="text-gray-500 text-xl mb-1" />
             <div className="text-2xl font-bold text-gray-900">
               {activity.viewed_count}
             </div>
             <div className="text-xs text-gray-500">Views</div>
           </div>
           <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
-            <MessageOutlined className="text-green-500 text-xl mb-1" />
+            <MessageOutlined className="text-gray-500 text-xl mb-1" />
             <div className="text-2xl font-bold text-gray-900">
               {activity.quote_count}
             </div>
@@ -392,9 +542,8 @@ export default function JobDetailDrawer({
                     <p className="text-gray-500 text-xs mt-0.5">2 hours ago</p>
                   </div>
                 ),
-                icon: <MessageOutlined style={{ color: "#3b82f6" }} />,
+                icon: <MessageOutlined style={{ color: "#6b7280" }} />,
               },
-              // Add more dynamic items based on actual activity data
             ]}
           />
         </div>
@@ -427,62 +576,148 @@ export default function JobDetailDrawer({
   };
 
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      size={480}
-      closable={false}
-      maskClosable={true}
-      className="job-detail-drawer"
-      styles={{
-        body: { padding: 0, background: "#fafafa" },
-        mask: { background: "rgba(0,0,0,0.4)" },
-      }}
-    >
-      <div className="h-full flex flex-col bg-white">
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-6 py-4">
-          <HeaderSection />
-        </div>
+    <>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        size={480}
+        closable={false}
+        maskClosable={true}
+        className="job-detail-drawer"
+        styles={{
+          body: { padding: 0, background: "#fafafa" },
+          mask: { background: "rgba(0,0,0,0.4)" },
+        }}
+      >
+        <div className="h-full flex flex-col bg-white">
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-6 py-4">
+            <HeaderSection />
+          </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
-          {loading ? (
-            <Skeleton active paragraph={{ rows: 6 }} />
-          ) : (
-            <>
-              <JobContentSection />
-              <Divider className="my-2!" />
-              <AboutClientSection />
-              <Divider className="my-2!" />
-              <JobActivitySection />
-            </>
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 6 }} />
+            ) : (
+              <>
+                <JobContentSection />
+                <Divider className="my-2!" />
+                <AboutClientSection />
+                <Divider className="my-2!" />
+                <JobActivitySection />
+              </>
+            )}
+          </div>
+
+          {/* Sticky Footer Action */}
+          {!job.is_expired && (
+            <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-6 py-4">
+              {isArtisanViewer && !isUnlocked ? (
+                // 🔒 LOCKED: Show unlock prompt
+                <div className="space-y-2">
+                  <Button
+                    type="primary"
+                    size="large"
+                    block
+                    icon={<UnlockOutlined />}
+                    onClick={handleUnlockClick}
+                    loading={loadingUnlock}
+                    className="!bg-gray-900 hover:!bg-gray-800 !border-0 !h-12 !text-base !font-medium !rounded-lg"
+                  >
+                    Unlock & Send Quote ({job.credit_cost || 10} Credits)
+                  </Button>
+                  <p className="text-xs text-gray-400 text-center">
+                    Unlock to view client contact and send your quote
+                  </p>
+                </div>
+              ) : (
+                // ✅ UNLOCKED or CUSTOMER: Show send quote button
+                <Link href={`jobs/send-quote/${job.id}`}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    className="w-full h-12 text-base font-medium bg-gray-900 border-0 hover:bg-gray-800 shadow-sm !rounded-lg"
+                    icon={<MessageOutlined />}
+                  >
+                    Send Quote to {posterName}
+                  </Button>
+                </Link>
+              )}
+            </div>
           )}
         </div>
+      </Drawer>
 
-        {/* Sticky Footer Action */}
-        {!job.is_expired && (
-          <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-6 py-4">
-            <Link href={`jobs/send-quote/${job.id}`}>
-              <Button
-                type="primary"
-                size="large"
-                className="w-full h-12 text-base font-medium bg-linear-to-r from-blue-600 to-indigo-600 border-0 hover:from-blue-700 hover:to-indigo-700 shadow-sm"
-                icon={<MessageOutlined />}
-                // onClick={() => {
-                //   onClose();
-                //   onQuoteClick?.(job.id);
-                // }}
-              >
-                Send Quote to {posterName}
-              </Button>
-            </Link>
-            <p className="text-xs text-gray-400 text-center mt-2">
-              You'll be able to discuss details before confirming
+      {/* Consent Modal */}
+      <Modal
+        title="Confirm Unlock"
+        open={showConsentModal}
+        onCancel={() => setShowConsentModal(false)}
+        footer={null}
+        width={480}
+        centered
+      >
+        <div className="py-4 space-y-4">
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <p className="font-semibold text-gray-900 mb-1">
+              {subcategoryConfig?.label || job.subcategory}
+            </p>
+            <p className="text-sm text-gray-500">
+              Unlock cost:{" "}
+              <strong className="text-gray-900">
+                {job.credit_cost || 10} credits
+              </strong>
             </p>
           </div>
-        )}
-      </div>
-    </Drawer>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Current Balance:</span>
+              <strong className="text-gray-900">{creditBalance} credits</strong>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Balance After Unlock:</span>
+              <strong className="text-green-600">
+                {creditBalance - (job.credit_cost || 10)} credits
+              </strong>
+            </div>
+          </div>
+
+          <Divider className="!my-3" />
+
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <p className="text-blue-900 text-xs">
+              <strong>What you get:</strong> View client contact details and
+              access to send a quote. One-time payment — no recurring charges
+              for this job.
+            </p>
+          </div>
+
+          <p className="text-gray-400 text-xs">
+            Credits are non-refundable unless the client cancels this job.
+          </p>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              block
+              onClick={() => setShowConsentModal(false)}
+              className="!h-11 !rounded-lg"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              block
+              loading={loadingUnlock}
+              onClick={confirmUnlock}
+              className="!bg-gray-900 hover:!bg-gray-800 !border-0 !h-11 !rounded-lg !font-medium"
+            >
+              Confirm & Unlock
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }

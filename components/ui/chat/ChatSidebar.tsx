@@ -438,8 +438,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
           open={isRequestModalOpen}
           onClose={() => setIsRequestModalOpen(false)}
           contractId={contract.id}
-          artisanId={conversation.artisan_id}
-          customerId={conversation.customer_id}
           maxAmount={Number(contract.total_agreed_amount || 0)}
           onRequestSuccess={fetchData}
         />

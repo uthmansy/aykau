@@ -43,17 +43,40 @@ export default function NotificationBell() {
     if (userId && unreadCount > prevCountRef.current && unreadCount > 0) {
       const latest = notifications[0];
       if (latest) {
-        notification.info({
-          title: latest.title,
+        // 🟢 Dynamic Toast Styling based on Notification Type
+        const positiveTypes = [
+          "funds_released",
+          "wallet_credited",
+          "job_completed",
+          "escrow_funded",
+          "success",
+          "quote_accepted",
+          "payment_approved",
+        ];
+        const warningTypes = [
+          "payment_rejected",
+          "quote_declined",
+          "warning",
+          "job_expired",
+        ];
+
+        const notifyMethod = positiveTypes.includes(latest.type)
+          ? notification.success
+          : warningTypes.includes(latest.type)
+          ? notification.warning
+          : notification.info;
+
+        notifyMethod({
+          message: latest.title, // AntD uses 'message' for the bold title
           description: latest.message,
           placement: "topRight",
-          duration: 4.5,
+          duration: 5,
+          className: "!rounded-xl !border-gray-200 !shadow-lg", // Extra sleek styling
         });
       }
     }
     prevCountRef.current = unreadCount;
   }, [unreadCount, notifications, notification, userId]);
-
   // 2. Handle click: Mark as read, close dropdown instantly, then navigate
   const handleItemClick = (item: any) => {
     if (!item.is_read) {

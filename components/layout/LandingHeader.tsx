@@ -32,12 +32,17 @@ export default function LandingHeader() {
           >
             Post a Job
           </Link>
-          <Button
-            type="primary"
-            className="!bg-gray-900 hover:!bg-gray-800 !border-0 !rounded-lg !h-9 !px-5"
+          <Link
+            href="/dashboard"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
-            Get Started
-          </Button>
+            <Button
+              type="primary"
+              className="!bg-gray-900 hover:!bg-gray-800 !border-0 !rounded-lg !h-9 !px-5"
+            >
+              Dashboard
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>

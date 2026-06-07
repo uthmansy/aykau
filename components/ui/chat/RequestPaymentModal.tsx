@@ -11,8 +11,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
   contractId: string;
-  artisanId: string;
-  customerId: string;
   maxAmount: number; // The total agreed amount or remaining escrow
   onRequestSuccess: () => void;
 }
@@ -21,8 +19,6 @@ export default function RequestPaymentModal({
   open,
   onClose,
   contractId,
-  artisanId,
-  customerId,
   maxAmount,
   onRequestSuccess,
 }: Props) {
@@ -46,14 +42,12 @@ export default function RequestPaymentModal({
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("payment_requests").insert({
-        contract_id: contractId,
-        artisan_id: artisanId,
-        customer_id: customerId,
-        amount: amount,
-        description: description.trim(),
-        request_type: requestType,
-        status: "pending",
+      // 🟢 Call the secure RPC instead of direct insert
+      const { error } = await supabase.rpc("create_payment_request", {
+        p_contract_id: contractId,
+        p_amount: amount,
+        p_description: description.trim(),
+        p_request_type: requestType,
       });
 
       if (error) throw error;
@@ -65,7 +59,16 @@ export default function RequestPaymentModal({
       setDescription("");
     } catch (error: any) {
       console.error("Request error:", error);
-      message.error("Failed to send request. Please try again.");
+      // Handle specific validation errors from the RPC
+      if (error.message.includes("invalid_amount")) {
+        message.error("The requested amount exceeds the available limit.");
+      } else if (error.message.includes("unauthorized")) {
+        message.error(
+          "You do not have permission to request payment for this contract."
+        );
+      } else {
+        message.error("Failed to send request. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

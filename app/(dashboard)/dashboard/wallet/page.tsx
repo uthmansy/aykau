@@ -83,7 +83,7 @@ export default function WalletPage() {
   };
 
   // 🟢 SIMULATED PAYMENT FLOW (Will be replaced by Paystack later)
-  const handleSimulatedPayment = async (
+  const handleRealPayment = async (
     type: "fiat_deposit" | "credit_purchase"
   ) => {
     if (!paymentAmount || paymentAmount <= 0) {
@@ -94,32 +94,31 @@ export default function WalletPage() {
     setProcessing(true);
 
     try {
-      // Call the secure RPC instead of directly inserting into the table
-      const { error } = await supabase.rpc("simulate_payment", {
-        p_amount: paymentAmount,
-        p_currency: type === "fiat_deposit" ? "fiat" : "credit",
-        p_type: type,
-      });
+      const user = useAuthStore.getState().user;
 
-      if (error) throw error;
+      // 1. Call Supabase Edge Function to initialize Paystack
+      const { data: intentData, error: intentError } =
+        await supabase.functions.invoke("create-payment-intent", {
+          body: {
+            amount: paymentAmount,
+            email: user?.email,
+            metadata: {
+              user_id: user?.id,
+              type: type,
+            },
+          },
+        });
 
-      message.success("Payment successful! Wallet updated.");
+      if (intentError) throw intentError;
 
-      // Close modal and reset
-      setIsAddFundsOpen(false);
-      setIsBuyCreditsOpen(false);
-      setPaymentAmount(null);
-
-      // Refresh the wallet data to show the new balance
-      fetchWalletData();
+      // 2. Redirect user to Paystack's secure checkout page
+      window.location.href = intentData.authorizationUrl;
     } catch (error: any) {
       console.error("Payment error:", error);
-      message.error("Payment failed. Please try again.");
-    } finally {
+      message.error("Failed to initialize payment. Please try again.");
       setProcessing(false);
     }
   };
-
   // Helper to format currency (Naira)
   const formatCurrency = (amount: number) => {
     return `₦${Number(amount || 0).toLocaleString("en-NG", {
@@ -266,7 +265,7 @@ export default function WalletPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <Title level={2} className="!text-gray-900 !mb-1">
+        <Title level={3} className="!text-gray-900 !mb-1">
           Wallet
         </Title>
         <Text className="!text-gray-500">
@@ -282,11 +281,11 @@ export default function WalletPage() {
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
               <WalletOutlined className="text-xl text-gray-700" />
             </div>
-            <Text className="!text-gray-500 !font-medium uppercase text-xs tracking-wide">
+            <Text className="!text-gray-500 !font-medium uppercase text-xs! tracking-wide">
               Fiat Balance
             </Text>
           </div>
-          <Title level={2} className="!text-gray-900 !mb-6">
+          <Title level={3} className="!text-gray-900 !mb-6">
             {formatCurrency(wallet?.fiat_balance)}
           </Title>
           <Button
@@ -305,11 +304,11 @@ export default function WalletPage() {
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
               <StarOutlined className="text-xl text-gray-700" />
             </div>
-            <Text className="!text-gray-500 !font-medium uppercase text-xs tracking-wide">
+            <Text className="!text-gray-500 !font-medium uppercase text-xs! tracking-wide">
               Credit Balance
             </Text>
           </div>
-          <Title level={2} className="!text-gray-900 !mb-6">
+          <Title level={3} className="!text-gray-900 !mb-6">
             {Number(wallet?.credit_balance || 0).toLocaleString("en-NG", {
               minimumFractionDigits: 2,
             })}{" "}
@@ -328,7 +327,7 @@ export default function WalletPage() {
       {/* Transaction History */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
-          <Title level={4} className="!text-gray-900 !mb-0">
+          <Title level={5} className="!text-gray-900 !mb-0">
             Recent Transactions
           </Title>
         </div>
@@ -354,7 +353,7 @@ export default function WalletPage() {
                   <div
                     className={`w-10 h-10 rounded-full ${details.bg} flex items-center justify-center flex-shrink-0`}
                   >
-                    <span className={`text-lg ${details.color}`}>
+                    <span className={`text-lg! ${details.color}`}>
                       {details.icon}
                     </span>
                   </div>
@@ -362,11 +361,11 @@ export default function WalletPage() {
                   <div className="flex-1 min-w-0">
                     <Text
                       strong
-                      className="!text-gray-900 block text-sm truncate"
+                      className="!text-gray-900 block text-sm! truncate"
                     >
                       {details.title}
                     </Text>
-                    <Text className="!text-gray-400 text-xs block truncate">
+                    <Text className="!text-gray-400 text-xs! block truncate">
                       {tx.description || "No description"} •{" "}
                       {new Date(tx.created_at).toLocaleDateString("en-NG", {
                         month: "short",
@@ -433,7 +432,7 @@ export default function WalletPage() {
             size="large"
             block
             loading={processing}
-            onClick={() => handleSimulatedPayment("fiat_deposit")}
+            onClick={() => handleRealPayment("fiat_deposit")}
             className="!mt-6 !h-12 !rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !font-medium"
           >
             Proceed to Paystack
@@ -472,7 +471,7 @@ export default function WalletPage() {
             size="large"
             block
             loading={processing}
-            onClick={() => handleSimulatedPayment("credit_purchase")}
+            onClick={() => handleRealPayment("credit_purchase")}
             className="!mt-6 !h-12 !rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !font-medium"
           >
             Purchase Credits

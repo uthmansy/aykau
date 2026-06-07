@@ -14,6 +14,204 @@ export type Database = {
   }
   public: {
     Tables: {
+      contracts: {
+        Row: {
+          agreed_scope: string | null
+          artisan_accepted_at: string | null
+          artisan_id: string
+          created_at: string | null
+          customer_accepted_at: string | null
+          customer_id: string
+          escrow_funded_amount: number
+          escrow_released_amount: number
+          escrow_status: Database["public"]["Enums"]["escrow_status"]
+          expected_completion_date: string | null
+          id: string
+          job_id: string
+          platform_fee_percentage: number
+          quote_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          total_agreed_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          agreed_scope?: string | null
+          artisan_accepted_at?: string | null
+          artisan_id: string
+          created_at?: string | null
+          customer_accepted_at?: string | null
+          customer_id: string
+          escrow_funded_amount?: number
+          escrow_released_amount?: number
+          escrow_status?: Database["public"]["Enums"]["escrow_status"]
+          expected_completion_date?: string | null
+          id?: string
+          job_id: string
+          platform_fee_percentage?: number
+          quote_id: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          total_agreed_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          agreed_scope?: string | null
+          artisan_accepted_at?: string | null
+          artisan_id?: string
+          created_at?: string | null
+          customer_accepted_at?: string | null
+          customer_id?: string
+          escrow_funded_amount?: number
+          escrow_released_amount?: number
+          escrow_status?: Database["public"]["Enums"]["escrow_status"]
+          expected_completion_date?: string | null
+          id?: string
+          job_id?: string
+          platform_fee_percentage?: number
+          quote_id?: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          total_agreed_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "job_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          artisan_id: string
+          created_at: string | null
+          customer_id: string
+          id: string
+          job_id: string
+          last_message_at: string | null
+        }
+        Insert: {
+          artisan_id: string
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          job_id: string
+          last_message_at?: string | null
+        }
+        Update: {
+          artisan_id?: string
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          job_id?: string
+          last_message_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_packages: {
+        Row: {
+          created_at: string | null
+          credits_amount: number
+          discount_percentage: number
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          price_naira: number
+        }
+        Insert: {
+          created_at?: string | null
+          credits_amount: number
+          discount_percentage?: number
+          display_order: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price_naira: number
+        }
+        Update: {
+          created_at?: string | null
+          credits_amount?: number
+          discount_percentage?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_naira?: number
+        }
+        Relationships: []
+      }
+      job_credit_tiers: {
+        Row: {
+          budget_range_key: string
+          created_at: string | null
+          credit_cost: number
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          budget_range_key: string
+          created_at?: string | null
+          credit_cost: number
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          budget_range_key?: string
+          created_at?: string | null
+          credit_cost?: number
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       job_photos: {
         Row: {
           id: string
@@ -54,6 +252,7 @@ export type Database = {
           artisan_id: string
           availability_note: string | null
           created_at: string | null
+          customer_id: string | null
           id: string
           is_viewed: boolean
           job_id: string
@@ -69,6 +268,7 @@ export type Database = {
           artisan_id: string
           availability_note?: string | null
           created_at?: string | null
+          customer_id?: string | null
           id?: string
           is_viewed?: boolean
           job_id: string
@@ -84,6 +284,7 @@ export type Database = {
           artisan_id?: string
           availability_note?: string | null
           created_at?: string | null
+          customer_id?: string | null
           id?: string
           is_viewed?: boolean
           job_id?: string
@@ -99,6 +300,13 @@ export type Database = {
           {
             foreignKeyName: "job_quotes_artisan_id_fkey"
             columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_quotes_customer_id_fkey"
+            columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -122,6 +330,7 @@ export type Database = {
           contact_methods: string[] | null
           coordinates: Json | null
           created_at: string | null
+          credit_cost: number | null
           custom_details: Json | null
           customer_id: string
           description: string
@@ -152,6 +361,7 @@ export type Database = {
           contact_methods?: string[] | null
           coordinates?: Json | null
           created_at?: string | null
+          credit_cost?: number | null
           custom_details?: Json | null
           customer_id: string
           description: string
@@ -182,6 +392,7 @@ export type Database = {
           contact_methods?: string[] | null
           coordinates?: Json | null
           created_at?: string | null
+          credit_cost?: number | null
           custom_details?: Json | null
           customer_id?: string
           description?: string
@@ -207,6 +418,61 @@ export type Database = {
           {
             foreignKeyName: "job_requests_customer_profile_fkey"
             columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          attachments: Json | null
+          content: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          quoted_message_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          quoted_message_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          quoted_message_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_quoted_message_id_fkey"
+            columns: ["quoted_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -257,6 +523,102 @@ export type Database = {
           },
         ]
       }
+      payment_requests: {
+        Row: {
+          amount: number
+          artisan_id: string
+          contract_id: string
+          created_at: string | null
+          customer_id: string
+          description: string
+          id: string
+          request_type: Database["public"]["Enums"]["payment_request_type"]
+          status: Database["public"]["Enums"]["payment_request_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          artisan_id: string
+          contract_id: string
+          created_at?: string | null
+          customer_id: string
+          description: string
+          id?: string
+          request_type: Database["public"]["Enums"]["payment_request_type"]
+          status?: Database["public"]["Enums"]["payment_request_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          artisan_id?: string
+          contract_id?: string
+          created_at?: string | null
+          customer_id?: string
+          description?: string
+          id?: string
+          request_type?: Database["public"]["Enums"]["payment_request_type"]
+          status?: Database["public"]["Enums"]["payment_request_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_methods: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean
+          provider: string
+          provider_account_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          provider: string
+          provider_account_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          provider?: string
+          provider_account_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address_preference: string | null
@@ -271,6 +633,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_verified: boolean
+          last_seen: string | null
           lga_id: number | null
           lga_name: string | null
           nin: string | null
@@ -296,6 +659,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_verified?: boolean
+          last_seen?: string | null
           lga_id?: number | null
           lga_name?: string | null
           nin?: string | null
@@ -321,6 +685,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_verified?: boolean
+          last_seen?: string | null
           lga_id?: number | null
           lga_name?: string | null
           nin?: string | null
@@ -335,11 +700,196 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          contract_id: string | null
+          created_at: string | null
+          currency: string
+          description: string | null
+          expires_at: string | null
+          external_reference_id: string | null
+          id: string
+          job_id: string | null
+          original_transaction_id: string | null
+          paystack_metadata: Json | null
+          quote_id: string | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          contract_id?: string | null
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          expires_at?: string | null
+          external_reference_id?: string | null
+          id?: string
+          job_id?: string | null
+          original_transaction_id?: string | null
+          paystack_metadata?: Json | null
+          quote_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          contract_id?: string | null
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          expires_at?: string | null
+          external_reference_id?: string | null
+          id?: string
+          job_id?: string | null
+          original_transaction_id?: string | null
+          paystack_metadata?: Json | null
+          quote_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_original_transaction_id_fkey"
+            columns: ["original_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "job_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unlocked_jobs: {
+        Row: {
+          artisan_id: string
+          credits_spent: number
+          id: string
+          is_refunded: boolean
+          job_id: string
+          original_transaction_id: string | null
+          unlocked_at: string | null
+        }
+        Insert: {
+          artisan_id: string
+          credits_spent: number
+          id?: string
+          is_refunded?: boolean
+          job_id: string
+          original_transaction_id?: string | null
+          unlocked_at?: string | null
+        }
+        Update: {
+          artisan_id?: string
+          credits_spent?: number
+          id?: string
+          is_refunded?: boolean
+          job_id?: string
+          original_transaction_id?: string | null
+          unlocked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unlocked_jobs_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unlocked_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unlocked_jobs_original_transaction_id_fkey"
+            columns: ["original_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          created_at: string | null
+          credit_balance: number
+          fiat_balance: number
+          id: string
+          paystack_customer_code: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credit_balance?: number
+          fiat_balance?: number
+          id?: string
+          paystack_customer_code?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          credit_balance?: number
+          fiat_balance?: number
+          id?: string
+          paystack_customer_code?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_quote_and_create_contract: {
+        Args: { p_quote_id: string }
+        Returns: Json
+      }
+      buy_credits_with_fiat: { Args: { p_package_id: string }; Returns: Json }
       create_notification: {
         Args: {
           p_link?: string
@@ -351,8 +901,38 @@ export type Database = {
         }
         Returns: string
       }
+      create_payment_request: {
+        Args: {
+          p_amount: number
+          p_contract_id: string
+          p_description: string
+          p_request_type: string
+        }
+        Returns: Json
+      }
+      is_artisan_of_job: { Args: { p_job_id: string }; Returns: boolean }
+      is_customer_of_quote: { Args: { p_quote_id: string }; Returns: boolean }
+      mark_job_completed: { Args: { p_contract_id: string }; Returns: Json }
+      reconcile_wallet: { Args: { p_user_id: string }; Returns: Json }
+      reconcile_wallet_internal: { Args: { p_user_id: string }; Returns: Json }
+      simulate_payment: {
+        Args: { p_amount: number; p_currency: string; p_type: string }
+        Returns: Json
+      }
+      unlock_job: { Args: { p_job_id: string }; Returns: Json }
+      update_payment_request_status: {
+        Args: { p_new_status: string; p_request_id: string }
+        Returns: Json
+      }
     }
     Enums: {
+      contract_status:
+        | "draft"
+        | "active"
+        | "completed"
+        | "cancelled"
+        | "disputed"
+      escrow_status: "none" | "held" | "released" | "refunded" | "disputed"
       job_status: "open" | "in_progress" | "completed" | "cancelled" | "expired"
       notification_type:
         | "info"
@@ -363,6 +943,15 @@ export type Database = {
         | "quote_declined"
         | "job_expired"
         | "system"
+        | "payment_approved"
+        | "payment_rejected"
+        | "funds_released"
+        | "escrow_funded"
+        | "job_completed"
+        | "wallet_credited"
+        | "payment_request"
+      payment_request_status: "pending" | "approved" | "rejected"
+      payment_request_type: "fund_escrow" | "release_escrow"
       quote_status:
         | "pending"
         | "responded"
@@ -379,6 +968,17 @@ export type Database = {
         | "automotive"
         | "other"
       service_location_type: "home" | "business" | "remote" | "other"
+      transaction_status: "pending" | "completed" | "failed" | "cancelled"
+      transaction_type:
+        | "credit_purchase"
+        | "credit_spend"
+        | "fiat_deposit"
+        | "escrow_hold"
+        | "escrow_release"
+        | "escrow_refund"
+        | "platform_fee"
+        | "withdrawal"
+        | "adjustment"
       user_role: "artisan" | "admin" | "customer"
     }
     CompositeTypes: {
@@ -507,6 +1107,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      contract_status: [
+        "draft",
+        "active",
+        "completed",
+        "cancelled",
+        "disputed",
+      ],
+      escrow_status: ["none", "held", "released", "refunded", "disputed"],
       job_status: ["open", "in_progress", "completed", "cancelled", "expired"],
       notification_type: [
         "info",
@@ -517,7 +1125,16 @@ export const Constants = {
         "quote_declined",
         "job_expired",
         "system",
+        "payment_approved",
+        "payment_rejected",
+        "funds_released",
+        "escrow_funded",
+        "job_completed",
+        "wallet_credited",
+        "payment_request",
       ],
+      payment_request_status: ["pending", "approved", "rejected"],
+      payment_request_type: ["fund_escrow", "release_escrow"],
       quote_status: [
         "pending",
         "responded",
@@ -536,6 +1153,18 @@ export const Constants = {
         "other",
       ],
       service_location_type: ["home", "business", "remote", "other"],
+      transaction_status: ["pending", "completed", "failed", "cancelled"],
+      transaction_type: [
+        "credit_purchase",
+        "credit_spend",
+        "fiat_deposit",
+        "escrow_hold",
+        "escrow_release",
+        "escrow_refund",
+        "platform_fee",
+        "withdrawal",
+        "adjustment",
+      ],
       user_role: ["artisan", "admin", "customer"],
     },
   },
