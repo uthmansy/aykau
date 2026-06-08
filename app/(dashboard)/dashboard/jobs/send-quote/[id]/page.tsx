@@ -1,9 +1,10 @@
+// app/(dashboard)/dashboard/jobs/send-quote/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Form, Button, Typography, Skeleton, Result } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, WarningOutlined } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
 import { supabase } from "@/services/supabase/client";
 import QuoteDetailView from "@/components/ui/quotes/QuoteDetailView";
@@ -19,18 +20,32 @@ export default function SendQuotePage() {
 
   const [job, setJob] = useState<JobListing | null>(null);
   const [loadingJob, setLoadingJob] = useState(true);
-
-  // New states for managing the existing quote
   const [myQuote, setMyQuote] = useState<any>(null);
   const [loadingQuote, setLoadingQuote] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const jobId = params.id as string;
 
-  // 1. Fetch Job Details
+  // 🟢 NEW: Security check states
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  // 1. Fetch Job Details + Security Checks
   useEffect(() => {
-    async function fetchJob() {
+    async function fetchJobAndCheckAccess() {
       if (!jobId) return;
-      const { data, error } = await supabase
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setAccessError("You must be logged in to send quotes");
+        setLoadingJob(false);
+        return;
+      }
+
+      // Fetch job
+      const { data: jobData, error: jobError } = await supabase
         .from("job_requests")
         .select(
           `*, poster:profiles!customer_id(full_name, username, avatar_url, is_verified)`
@@ -38,17 +53,57 @@ export default function SendQuotePage() {
         .eq("id", jobId)
         .single();
 
-      if (error || !data) setJob(null);
-      else setJob(data as any);
+      if (jobError || !jobData) {
+        setJob(null);
+        setLoadingJob(false);
+        return;
+      }
+
+      setJob(jobData as any);
+
+      // 🟢 CHECK 1: Job must be open
+      if (jobData.status !== "open") {
+        setAccessError("This job is no longer accepting quotes");
+        setLoadingJob(false);
+        return;
+      }
+
+      // 🟢 CHECK 2: Artisan cannot quote on their own job
+      if (jobData.customer_id === user.id) {
+        setAccessError("You cannot send a quote to your own job");
+        setLoadingJob(false);
+        return;
+      }
+
+      // 🟢 CHECK 3: Artisan must have unlocked the job
+      const { data: unlockData } = await supabase
+        .from("unlocked_jobs")
+        .select("id")
+        .eq("job_id", jobId)
+        .eq("artisan_id", user.id)
+        .eq("is_refunded", false)
+        .maybeSingle();
+
+      if (!unlockData) {
+        setAccessError("You must unlock this job before sending a quote");
+        setLoadingJob(false);
+        return;
+      }
+
+      setIsUnlocked(true);
       setLoadingJob(false);
     }
-    fetchJob();
-  }, [jobId, supabase]);
+
+    fetchJobAndCheckAccess();
+  }, [jobId]);
 
   // 2. Fetch Current User's Quote for this Job
   useEffect(() => {
     async function fetchQuote() {
-      if (!jobId) return;
+      if (!jobId || !isUnlocked) {
+        setLoadingQuote(false);
+        return;
+      }
 
       const {
         data: { user },
@@ -63,13 +118,13 @@ export default function SendQuotePage() {
         .select("*")
         .eq("job_id", jobId)
         .eq("artisan_id", user.id)
-        .maybeSingle(); // maybeSingle prevents errors if no record exists
+        .maybeSingle();
 
       setMyQuote(data);
       setLoadingQuote(false);
     }
     fetchQuote();
-  }, [jobId, supabase]);
+  }, [jobId, isUnlocked]);
 
   // 3. Pre-fill form when entering Edit mode
   useEffect(() => {
@@ -79,7 +134,6 @@ export default function SendQuotePage() {
         quoted_price: myQuote.quoted_price,
         quoted_price_note: myQuote.quoted_price_note,
         availability_note: myQuote.availability_note,
-        // Convert Postgres array back to newline-separated string for the textarea
         portfolio_links: myQuote.portfolio_links?.join("\n") || "",
       });
     } else if (!myQuote) {
@@ -92,6 +146,33 @@ export default function SendQuotePage() {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Skeleton active paragraph={{ rows: 10 }} />
+      </div>
+    );
+  }
+
+  // 🟢 NEW: Show access error
+  if (accessError) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Result
+          icon={<WarningOutlined className="text-amber-500" />}
+          title="Cannot Send Quote"
+          subTitle={accessError}
+          extra={
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => router.back()}>Go Back</Button>
+              {job && (
+                <Button
+                  type="primary"
+                  onClick={() => router.push(`/dashboard/jobs/${jobId}`)}
+                  className="bg-gray-900 hover:bg-gray-800 border-0"
+                >
+                  View Job Details
+                </Button>
+              )}
+            </div>
+          }
+        />
       </div>
     );
   }
@@ -132,16 +213,14 @@ export default function SendQuotePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Job Details Summary (Unchanged) */}
+        {/* Left Column: Job Details Summary */}
         <JobDetailSummary job={job} />
 
         {/* Right Column: Conditionally Render Form or Read-Only View */}
         <div className="lg:col-span-2">
           {myQuote && !isEditing ? (
-            // STATE 2 & 3: Show Read-Only View
             <QuoteDetailView myQuote={myQuote} setIsEditing={setIsEditing} />
           ) : (
-            // STATE 1: Show Form (Empty or Pre-filled for Editing)
             <SendQuoteForm
               jobId={jobId}
               myQuote={myQuote}

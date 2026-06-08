@@ -1,6 +1,6 @@
 // app/jobs/page.tsx
 import { Suspense } from "react";
-import { Grid, Skeleton, Empty, Pagination, Select } from "antd";
+import { Grid, Skeleton, Empty } from "antd";
 import { fetchJobs } from "@/lib/jobs/queries";
 import { JobFilters as JobFiltersType, JobSort } from "@/lib/jobs/types";
 import JobFilters from "@/components/ui/jobs/JobFilters";
@@ -9,6 +9,7 @@ import JobSortDropdown from "@/components/ui/jobs/JobSortDropdown";
 import JobPagination from "@/components/ui/jobs/JobPagination";
 import JobClearFiltersButton from "@/components/ui/jobs/JobClearFiltersButton";
 import { ServiceCategory } from "@/types/db";
+import CreditPurchaseSuccessToast from "@/components/ui/jobs/CreditPurchaseSuccessToast";
 
 const { useBreakpoint } = Grid;
 
@@ -52,6 +53,9 @@ export default async function JobsPage({
 
   return (
     <div className="">
+      {/* 🟢 NEW: This handles the Paystack redirect success toast */}
+      <CreditPurchaseSuccessToast />
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Find Services</h1>
         <p className="text-gray-600">

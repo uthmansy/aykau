@@ -37,8 +37,8 @@ export default function LoginPage() {
     }
 
     message.success("Login successful");
-
-    setUser(data.user);
+    //@ts-ignore
+    setUser(data?.user);
 
     router.push("/dashboard");
 

@@ -12,7 +12,7 @@ import {
   Tag,
   Space,
   Divider,
-  Image, // Added for photo gallery
+  Image,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -20,9 +20,10 @@ import {
   EnvironmentOutlined,
   WalletOutlined,
   CalendarOutlined,
-  KeyOutlined, // Added for access notes
+  KeyOutlined,
 } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
+import { useAuthStore } from "@/store/auth.store"; // 🟢 Added
 import QuotesList from "@/components/ui/jobs/manage/QuotesList";
 import EditJobDrawer from "@/components/ui/jobs/manage/EditJobDrawer";
 import { JobListing } from "@/lib/jobs/types";
@@ -33,25 +34,39 @@ export default function ManageJobPage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.id as string;
+  const userId = useAuthStore((state) => state.user?.id); // 🟢 Added
 
   const [job, setJob] = useState<JobListing | null>(null);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false); // 🟢 Added
 
   // Fetch Job and Quotes
   useEffect(() => {
     async function fetchData() {
-      if (!jobId) return;
+      if (!jobId || !userId) return;
 
       // 1. Fetch Job
-      const { data: jobData } = await supabase
+      const { data: jobData, error } = await supabase
         .from("job_requests")
         .select(
           `*, poster:profiles!customer_id(full_name, username, avatar_url)`
         )
         .eq("id", jobId)
         .single();
+
+      if (error || !jobData) {
+        setLoading(false);
+        return;
+      }
+
+      // 🟢 OWNERSHIP CHECK: Verify current user owns this job
+      if (jobData.customer_id !== userId) {
+        setIsUnauthorized(true);
+        setLoading(false);
+        return;
+      }
 
       setJob(jobData);
 
@@ -72,7 +87,7 @@ export default function ManageJobPage() {
     }
 
     fetchData();
-  }, [jobId]);
+  }, [jobId, userId]);
 
   // Refresh quotes after an action is taken
   const refreshQuotes = async () => {
@@ -91,6 +106,21 @@ export default function ManageJobPage() {
       <div className="max-w-7xl mx-auto p-6">
         <Skeleton active paragraph={{ rows: 12 }} />
       </div>
+    );
+
+  // 🟢 UNAUTHORIZED: Show 403 Forbidden
+  if (isUnauthorized)
+    return (
+      <Result
+        status="403"
+        title="Access Denied"
+        subTitle="You don't have permission to manage this job."
+        extra={
+          <Button type="primary" onClick={() => router.push("/dashboard/jobs")}>
+            Back to My Jobs
+          </Button>
+        }
+      />
     );
 
   if (!job)

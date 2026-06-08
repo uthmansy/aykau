@@ -27,6 +27,7 @@ import {
 } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
+import BuyCreditsModal from "@/components/ui/wallet/BuyCreditsModal";
 
 const { Title, Text } = Typography;
 
@@ -37,6 +38,7 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
 
   // Modal States
   const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
@@ -316,8 +318,8 @@ export default function WalletPage() {
           </Title>
           <Button
             icon={<StarOutlined />}
-            onClick={() => setIsBuyCreditsOpen(true)}
-            className="!bg-white hover:!bg-gray-50 !border-gray-300 hover:!border-gray-400 !text-gray-900 !rounded-xl !h-11 !w-full !font-medium !shadow-none"
+            onClick={() => setShowBuyCreditsModal(true)}
+            className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-900 rounded-xl h-11 w-full font-medium shadow-none"
           >
             Buy Credits
           </Button>
@@ -482,6 +484,13 @@ export default function WalletPage() {
           </Text>
         </div>
       </Modal>
+      <BuyCreditsModal
+        open={showBuyCreditsModal}
+        onClose={() => setShowBuyCreditsModal(false)}
+        onSuccess={() => {
+          fetchWalletData();
+        }}
+      />
     </div>
   );
 }

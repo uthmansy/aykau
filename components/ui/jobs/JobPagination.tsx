@@ -22,7 +22,7 @@ export default function JobPagination({
       onChange={(newPage) => {
         const params = new URLSearchParams(searchParams.toString());
         params.set("page", newPage.toString());
-        router.push(`/jobs?${params.toString()}`);
+        router.push(`/dashboard/jobs?${params.toString()}`);
       }}
       showSizeChanger={false}
     />

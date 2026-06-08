@@ -56,21 +56,19 @@ function SendQuoteForm({
           .filter(Boolean)
       : [];
 
-    const payload = {
-      job_id: jobId,
-      artisan_id: user.id,
-      message: values.message,
-      quoted_price: values.quoted_price,
-      quoted_price_note: values.quoted_price_note,
-      availability_note: values.availability_note,
-      portfolio_links: portfolioLinks,
-    };
-
     let error;
     let savedQuote;
 
     if (myQuote) {
-      // UPDATE existing quote
+      // 🟢 UPDATE existing quote (direct update - already passed unlock check)
+      const payload = {
+        message: values.message,
+        quoted_price: values.quoted_price,
+        quoted_price_note: values.quoted_price_note,
+        availability_note: values.availability_note,
+        portfolio_links: portfolioLinks,
+      };
+
       const { data, error: updateError } = await supabase
         .from("job_quotes")
         .update(payload)
@@ -81,20 +79,53 @@ function SendQuoteForm({
       error = updateError;
       savedQuote = data;
     } else {
-      // INSERT new quote
-      const { data, error: insertError } = await supabase
-        .from("job_quotes")
-        .insert({ ...payload, status: "pending" })
-        .select()
-        .single();
+      // 🟢 INSERT new quote (use secure RPC to enforce unlock check)
+      try {
+        const { data, error: rpcError } = await supabase.rpc("submit_quote", {
+          p_job_id: jobId,
+          p_quoted_price: values.quoted_price,
+          p_quoted_price_note: values.quoted_price_note || null,
+          p_message: values.message,
+          p_availability_note: values.availability_note || null,
+          p_portfolio_links: portfolioLinks,
+        });
 
-      error = insertError;
-      savedQuote = data;
+        error = rpcError;
+
+        if (!rpcError) {
+          // Fetch the newly created quote to get its data
+          const { data: quoteData } = await supabase
+            .from("job_quotes")
+            .select("*")
+            .eq("job_id", jobId)
+            .eq("artisan_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          savedQuote = quoteData;
+        }
+      } catch (err: any) {
+        error = err;
+      }
     }
 
     if (error) {
       console.error("Error saving quote:", error);
-      message.error("Failed to save quote. Please try again.");
+
+      // 🟢 Handle specific RPC errors
+      if (error.message?.includes("job_not_available")) {
+        message.error("This job is no longer accepting quotes.");
+      } else if (error.message?.includes("job_not_unlocked")) {
+        message.error("You must unlock this job first.");
+        router.push(`/dashboard/jobs/${jobId}`);
+      } else if (error.message?.includes("quote_already_exists")) {
+        message.error("You have already sent a quote for this job.");
+      } else if (error.message?.includes("cannot_quote_own_job")) {
+        message.error("You cannot quote on your own job.");
+      } else {
+        message.error("Failed to save quote. Please try again.");
+      }
     } else {
       message.success(
         myQuote ? "Quote updated successfully!" : "Quote sent successfully!"
