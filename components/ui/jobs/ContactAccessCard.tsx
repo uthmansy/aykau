@@ -19,6 +19,7 @@ interface Props {
   onUnlock: () => void;
   onSendQuote: () => void;
   loading?: boolean;
+  creditCost: number;
 }
 
 export default function ContactAccessCard({
@@ -28,6 +29,7 @@ export default function ContactAccessCard({
   onUnlock,
   onSendQuote,
   loading,
+  creditCost,
 }: Props) {
   if (isUnlocked) {
     return (
@@ -110,7 +112,7 @@ export default function ContactAccessCard({
             <LockOutlined className="text-3xl text-gray-500" />
           </div>
           <Text strong className="!text-gray-900 !text-lg mb-1 text-center">
-            Unlock for {10} Credits
+            Unlock for {creditCost} Credits
           </Text>
           <Text className="!text-gray-500 !text-sm mb-5 text-center max-w-sm">
             View customer contact details and gain access to send a quote for

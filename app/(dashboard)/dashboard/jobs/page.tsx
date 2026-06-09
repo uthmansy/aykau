@@ -4,16 +4,14 @@ import { Grid, Skeleton, Empty } from "antd";
 import { fetchJobs } from "@/lib/jobs/queries";
 import { JobFilters as JobFiltersType, JobSort } from "@/lib/jobs/types";
 import JobFilters from "@/components/ui/jobs/JobFilters";
-import JobCard from "@/components/ui/jobs/JobCard";
+import JobCardWithCredits from "@/components/ui/jobs/JobCardWithCredits"; // 🟢 Changed
 import JobSortDropdown from "@/components/ui/jobs/JobSortDropdown";
 import JobPagination from "@/components/ui/jobs/JobPagination";
 import JobClearFiltersButton from "@/components/ui/jobs/JobClearFiltersButton";
 import { ServiceCategory } from "@/types/db";
-import CreditPurchaseSuccessToast from "@/components/ui/jobs/CreditPurchaseSuccessToast";
 
 const { useBreakpoint } = Grid;
 
-// ✅ This remains a Server Component (no "use client")
 export default async function JobsPage({
   searchParams,
 }: {
@@ -30,7 +28,6 @@ export default async function JobsPage({
   const page = parseInt(params.page || "1");
   const limit = 12;
 
-  // ✅ Only pass SERIALIZEABLE props to Client Component
   const initialFilters = {
     category: params.category as ServiceCategory,
     location: params.location,
@@ -48,14 +45,10 @@ export default async function JobsPage({
     order: "desc",
   };
 
-  // Fetch jobs server-side (SSR)
   const { jobs, pagination } = await fetchJobs({ filters, sort, page, limit });
 
   return (
     <div className="">
-      {/* 🟢 NEW: This handles the Paystack redirect success toast */}
-      <CreditPurchaseSuccessToast />
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Find Services</h1>
         <p className="text-gray-600">
@@ -65,31 +58,25 @@ export default async function JobsPage({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* 🎛️ Filters Sidebar - Client Component */}
         <div className="lg:w-64 shrink-0">
           <Suspense fallback={<Skeleton active />}>
-            {/* ✅ Pass ONLY serializable props - NO functions */}
             <JobFilters initialFilters={initialFilters} />
           </Suspense>
         </div>
 
-        {/* 📋 Job Grid */}
         <div className="flex-1">
-          {/* Sort Dropdown - Client-side only */}
           <div className="flex justify-end mb-4">
             <JobSortDropdown currentSort={params.sort} />
           </div>
 
-          {/* Jobs Grid */}
           {jobs.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {jobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
+                  <JobCardWithCredits key={job.id} job={job} /> // 🟢 Changed
                 ))}
               </div>
 
-              {/* Pagination */}
               {pagination.totalPages > 1 && (
                 <div className="flex justify-center mt-8">
                   <JobPagination

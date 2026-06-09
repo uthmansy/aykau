@@ -144,12 +144,13 @@ export default function BuyCreditsModal({
 
     setLoading(true);
     try {
-      // 🟢 UPDATED: Include job ID in callback URL
+      // 🟢 Build callback URL pointing to the bridge page
       let callbackUrl =
         typeof window !== "undefined"
-          ? window.location.href.split("?")[0] + "?credit_purchase=success"
-          : "";
+          ? `${window.location.origin}/dashboard/payment/processing?intent=credit_purchase`
+          : "https://yourdomain.com/dashboard/payment/processing?intent=credit_purchase";
 
+      // Add job ID if present
       if (jobId) {
         callbackUrl += `&unlock_job=${jobId}`;
       }
@@ -159,12 +160,12 @@ export default function BuyCreditsModal({
           body: {
             amount: selectedPackage.price_naira,
             email: userEmail,
+            callback_url: callbackUrl,
             metadata: {
               user_id: userId,
               type: "credit_purchase",
               credits_amount: selectedPackage.credits_amount,
               package_name: selectedPackage.name,
-              callback_url: callbackUrl, // 🟢 Updated callback URL
             },
           },
         });

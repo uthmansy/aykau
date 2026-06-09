@@ -1,7 +1,10 @@
-// components/jobs/UnlockConsentModal.tsx
+// components/ui/jobs/JobDetailDrawer/UnlockConsentModal.tsx
+"use client";
+
 import { Modal, Button, Divider } from "antd";
 import { JobListing } from "@/lib/jobs/types";
 import { SERVICE_SUBCATEGORIES } from "../../JobPostingForm";
+import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
 
 interface Props {
   open: boolean;
@@ -24,7 +27,7 @@ export default function UnlockConsentModal({
     (s) => s.value === job.subcategory
   );
   const jobTitle = subcategoryConfig?.label || job.subcategory;
-  const creditCost = job.credit_cost || 10;
+  const creditCost = useJobCreditCost(job); // 🟢 Use hook
 
   return (
     <Modal

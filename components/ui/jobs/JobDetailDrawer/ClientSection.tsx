@@ -1,4 +1,6 @@
 // components/jobs/ClientSection.tsx
+"use client";
+
 import { Avatar, Badge, Tag, Button, Tooltip } from "antd";
 import {
   UserOutlined,
@@ -10,6 +12,7 @@ import {
   MessageOutlined,
 } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
+import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
 
 interface Props {
   job: JobListing;
@@ -30,6 +33,7 @@ export default function ClientSection({
 }: Props) {
   const poster = job.poster;
   const posterName = poster?.full_name || poster?.username || "Anonymous";
+  const creditCost = useJobCreditCost(job); // 🟢 Use hook
 
   // 🔒 LOCKED STATE
   if (isArtisanViewer && !isUnlocked) {
@@ -39,7 +43,6 @@ export default function ClientSection({
           About the Client
         </h3>
 
-        {/* 🟢 FIX: Added min-h-[260px] to ensure button is never cut off */}
         <div className="relative rounded-xl overflow-hidden min-h-[260px]">
           {/* Blurred Content */}
           <div className="opacity-30 pointer-events-none select-none filter blur-sm p-5 bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-xl h-full">
@@ -64,7 +67,7 @@ export default function ClientSection({
               <LockOutlined className="text-2xl text-gray-600" />
             </div>
             <p className="text-base font-semibold text-gray-900 mb-1 text-center">
-              Unlock for {job.credit_cost || 10} Credits
+              Unlock for {creditCost} Credits
             </p>
             <p className="text-sm text-gray-500 mb-5 text-center max-w-xs">
               View client contact details and send a quote

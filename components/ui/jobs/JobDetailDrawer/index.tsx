@@ -6,6 +6,8 @@ import { Drawer, App } from "antd";
 import { JobListing } from "@/lib/jobs/types";
 import { supabase } from "@/services/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
+import { useRouter } from "next/navigation";
+import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
 
 import DrawerHeader from "./DrawerHeader";
 import JobContentSection from "./JobContentSection";
@@ -14,7 +16,6 @@ import ActivitySection from "./ActivitySection";
 import DrawerFooter from "./DrawerFooter";
 import UnlockConsentModal from "./UnlockConsentModal";
 import BuyCreditsModal from "../../wallet/BuyCreditsModal";
-import { useRouter } from "next/navigation";
 
 interface Props {
   job: JobListing | null;
@@ -43,6 +44,7 @@ export default function JobDetailDrawer({
   const isArtisanViewer = userRole === "artisan" && !isCustomer;
 
   const router = useRouter();
+  const creditCost = useJobCreditCost(job); // 🟢 Use hook
 
   useEffect(() => {
     if (open && job?.id && userId && isArtisanViewer) {
@@ -79,11 +81,10 @@ export default function JobDetailDrawer({
   };
 
   const handleUnlockClick = () => {
-    const cost = job?.credit_cost || 10;
-    if (creditBalance >= cost) {
+    if (creditBalance >= creditCost) {
       setShowConsentModal(true);
     } else {
-      setShowBuyCreditsModal(true); // 🟢 Open Buy Credits modal
+      setShowBuyCreditsModal(true);
     }
   };
 
@@ -101,14 +102,13 @@ export default function JobDetailDrawer({
       if (data?.success) {
         message.success("Job unlocked successfully!");
         setIsUnlocked(true);
-        setCreditBalance((prev) => prev - (job.credit_cost || 10));
+        setCreditBalance((prev) => prev - creditCost);
         setShowConsentModal(false);
 
-        // 🟢 NEW: Redirect to send-quote page after unlock
         setTimeout(() => {
-          onClose(); // Close the drawer
+          onClose();
           router.push(`/dashboard/jobs/send-quote/${job.id}`);
-        }, 1000); // Small delay so user sees the success message
+        }, 1000);
       }
     } catch (error: any) {
       console.error("Unlock error:", error);
@@ -189,7 +189,6 @@ export default function JobDetailDrawer({
           open={showBuyCreditsModal}
           onClose={() => setShowBuyCreditsModal(false)}
           onSuccess={() => {
-            // Refresh credit balance after successful purchase
             checkUnlockStatus();
           }}
           jobId={job?.id}

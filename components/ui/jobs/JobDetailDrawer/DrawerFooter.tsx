@@ -1,8 +1,11 @@
 // components/jobs/DrawerFooter.tsx
+"use client";
+
 import { Button } from "antd";
 import { MessageOutlined, UnlockOutlined } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
 import Link from "next/link";
+import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
 
 interface Props {
   job: JobListing;
@@ -20,6 +23,7 @@ export default function DrawerFooter({
   loadingUnlock,
 }: Props) {
   const posterName = job.poster?.full_name || job.poster?.username || "Client";
+  const creditCost = useJobCreditCost(job); // 🟢 Use hook
 
   if (job.is_expired) return null;
 
@@ -36,7 +40,7 @@ export default function DrawerFooter({
             loading={loadingUnlock}
             className="bg-gray-900 hover:bg-gray-800 border-0 h-12 text-base font-medium rounded-lg shadow-sm"
           >
-            Unlock & Send Quote ({job.credit_cost || 10} Credits)
+            Unlock & Send Quote ({creditCost} Credits)
           </Button>
           <p className="text-xs text-gray-400 text-center">
             Unlock to view client contact and send your quote

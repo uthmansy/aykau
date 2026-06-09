@@ -98,22 +98,31 @@ export default function WalletPage() {
     try {
       const user = useAuthStore.getState().user;
 
-      // 1. Call Supabase Edge Function to initialize Paystack
+      // 🟢 Point to bridge page with appropriate intent
+      const callbackUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/dashboard/payment/processing?intent=${
+              type === "fiat_deposit" ? "add_funds" : "credit_purchase"
+            }`
+          : "https://yourdomain.com/dashboard/payment/processing?intent=add_funds";
+
       const { data: intentData, error: intentError } =
         await supabase.functions.invoke("create-payment-intent", {
           body: {
             amount: paymentAmount,
             email: user?.email,
+            callback_url: callbackUrl,
             metadata: {
               user_id: user?.id,
               type: type,
+              credits_amount:
+                type === "credit_purchase" ? paymentAmount : undefined,
             },
           },
         });
 
       if (intentError) throw intentError;
 
-      // 2. Redirect user to Paystack's secure checkout page
       window.location.href = intentData.authorizationUrl;
     } catch (error: any) {
       console.error("Payment error:", error);

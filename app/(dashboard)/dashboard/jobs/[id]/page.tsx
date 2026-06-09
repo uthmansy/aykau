@@ -9,7 +9,8 @@ import { useAuthStore } from "@/store/auth.store";
 import JobHeader from "@/components/ui/jobs/JobHeader";
 import JobInfoCard from "@/components/ui/jobs/JobInfoCard";
 import ContactAccessCard from "@/components/ui/jobs/ContactAccessCard";
-import UnlockConsentModal from "@/components/ui/jobs/UnlockConsentModal";
+import UnlockConsentModal from "@/components/ui/jobs/JobDetailDrawer/UnlockConsentModal";
+import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
 
 const { Title, Text } = Typography;
 
@@ -30,6 +31,8 @@ export default function JobDetailsPage() {
 
   const isCustomer = job && userId && job.customer_id === userId;
   const isArtisanViewer = userRole === "artisan" && !isCustomer;
+
+  const creditCost = useJobCreditCost(job); // 🟢 Use hook
 
   useEffect(() => {
     if (params.id && userId) {
@@ -95,12 +98,11 @@ export default function JobDetailsPage() {
   };
 
   const handleUnlockClick = () => {
-    const cost = job.credit_cost || 10;
-    if (creditBalance >= cost) {
+    if (creditBalance >= creditCost) {
       setShowConsentModal(true);
     } else {
       message.warning(
-        `You need ${cost} credits to unlock this job. Your balance is ${creditBalance}.`
+        `You need ${creditCost} credits to unlock this job. Your balance is ${creditBalance}.`
       );
     }
   };
@@ -117,7 +119,7 @@ export default function JobDetailsPage() {
       if (data?.success) {
         message.success("Job unlocked successfully!");
         setIsUnlocked(true);
-        setCreditBalance((prev) => prev - (job.credit_cost || 10));
+        setCreditBalance((prev) => prev - creditCost);
         setShowConsentModal(false);
       }
     } catch (error: any) {
@@ -176,6 +178,7 @@ export default function JobDetailsPage() {
             router.push(`/dashboard/jobs/send-quote/${job.id}`)
           }
           loading={loadingUnlock}
+          creditCost={creditCost}
         />
       )}
 
@@ -197,9 +200,8 @@ export default function JobDetailsPage() {
           open={showConsentModal}
           onClose={() => setShowConsentModal(false)}
           onConfirm={confirmUnlock}
-          jobTitle={job.title}
-          creditCost={job.credit_cost || 10}
-          currentBalance={creditBalance}
+          job={job}
+          creditBalance={creditBalance}
           loading={loadingUnlock}
         />
       )}
