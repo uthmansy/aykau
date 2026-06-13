@@ -1,20 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, Input, Select, Tag, Space, Button, Divider } from "antd";
-import {
-  SearchOutlined,
-  FilterOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
+import { Card, Input, Select, Tag, Space, Button, Divider, Spin } from "antd";
+import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
 
 import { NIGERIAN_STATES } from "@/constants/constants";
-import { SERVICE_CATEGORIES, SERVICE_SUBCATEGORIES } from "../JobPostingForm";
+import {
+  Category,
+  fetchCategoriesWithSubcategories,
+} from "@/lib/helpers/categories";
 
 import type { JobFilters } from "@/lib/jobs/types";
-
-type CategoryKey = keyof typeof SERVICE_SUBCATEGORIES;
 
 interface Props {
   initialFilters?: Partial<JobFilters>;
@@ -29,6 +26,24 @@ export default function JobFilters({ initialFilters = {} }: Props) {
     search: initialFilters.search ?? "",
   });
 
+  // 🟢 Fetch categories from database
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategoriesWithSubcategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCategories();
+  }, []);
+
   const urgencyOptions = [
     { value: "asap", label: "ASAP" },
     { value: "this-week", label: "This Week" },
@@ -36,17 +51,19 @@ export default function JobFilters({ initialFilters = {} }: Props) {
     { value: "planning", label: "Flexible" },
   ];
 
+  // 🟢 Get subcategories for the selected category
   const getSubcategories = () => {
-    const category = filters.category as CategoryKey;
-    return category ? SERVICE_SUBCATEGORIES[category] ?? [] : [];
+    if (!filters.category) return [];
+    const category = categories.find((c) => c.value === filters.category);
+    return category?.subcategories || [];
   };
 
+  // 🟢 Get category label from database
   const getCategoryLabel = (value: string) => {
-    return (
-      SERVICE_CATEGORIES.find((opt) => opt.value === value)?.label || value
-    );
+    return categories.find((c) => c.value === value)?.label || value;
   };
 
+  // 🟢 Get subcategory label from database
   const getSubcategoryLabel = (value: string) => {
     const subs = getSubcategories();
     return subs.find((opt) => opt.value === value)?.label || value;
@@ -140,6 +157,20 @@ export default function JobFilters({ initialFilters = {} }: Props) {
     return active;
   };
 
+  if (loading) {
+    return (
+      <Card
+        variant="borderless"
+        className="w-full max-w-[320px]"
+        styles={{ body: { padding: "20px" } }}
+      >
+        <div className="flex justify-center py-8">
+          <Spin />
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
       variant="borderless"
@@ -199,11 +230,17 @@ export default function JobFilters({ initialFilters = {} }: Props) {
           placeholder="Select category"
           value={filters.category}
           onChange={(value) => updateFilter("category", value)}
-          options={SERVICE_CATEGORIES}
+          options={categories.map((c) => ({
+            value: c.value,
+            label: `${c.icon || ""} ${c.label}`,
+          }))}
           allowClear
           showSearch
           size="middle"
           className="w-full"
+          filterOption={(input, option) =>
+            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
         />
       </div>
 

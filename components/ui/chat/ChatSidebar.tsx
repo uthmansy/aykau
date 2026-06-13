@@ -23,9 +23,12 @@ import {
   FlagOutlined,
   RiseOutlined,
   ClockCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
 import RequestPaymentModal from "./RequestPaymentModal";
+import RaiseDisputeModal from "../disputes/RaiseDisputeModal";
+import DisputeBanner from "../disputes/DisputeBanner";
 
 const { Title, Text } = Typography;
 
@@ -40,8 +43,10 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
   const [quote, setQuote] = useState<any>(null);
   const [contract, setContract] = useState<any>(null);
   const [pendingRequest, setPendingRequest] = useState<any>(null);
+  const [dispute, setDispute] = useState<any>(null); // 🟢 NEW
   const [loading, setLoading] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isRaiseDisputeOpen, setIsRaiseDisputeOpen] = useState(false); // 🟢 NEW
 
   const isCustomer = conversation.customer_id === currentUserId;
   const isArtisan = conversation.artisan_id === currentUserId;
@@ -79,6 +84,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
         setContract(contractData);
 
         if (contractData) {
+          // Fetch pending payment request
           const { data: requestData } = await supabase
             .from("payment_requests")
             .select("*")
@@ -87,10 +93,20 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
             .order("created_at", { ascending: false })
             .maybeSingle();
           setPendingRequest(requestData);
+
+          // 🟢 Fetch active dispute
+          const { data: disputeData } = await supabase
+            .from("disputes")
+            .select("*")
+            .eq("contract_id", contractData.id)
+            .in("status", ["mediation", "under_review"])
+            .maybeSingle();
+          setDispute(disputeData);
         }
       } else {
         setContract(null);
         setPendingRequest(null);
+        setDispute(null);
       }
     } catch (error) {
       console.error("Error fetching sidebar data:", error);
@@ -129,7 +145,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
     }
   };
 
-  // 🟢 UPDATED: Handles Approving/Rejecting Requests (Triggers Money Movement)
   const handleRequestAction = async (action: "approved" | "rejected") => {
     if (!pendingRequest) return;
     try {
@@ -144,7 +159,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
       fetchData();
     } catch (error: any) {
       console.error("Request action error:", error);
-      // Handle specific financial errors
       if (error.message.includes("insufficient_funds")) {
         message.error(
           "Insufficient wallet balance. Please add funds to your wallet first."
@@ -157,9 +171,14 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
     }
   };
 
-  // 🟢 NEW: Handles Marking Job Complete (Releases Remaining Funds)
   const handleMarkComplete = () => {
     if (!contract) return;
+
+    // 🟢 Block completion if dispute is active
+    if (dispute) {
+      message.warning("Cannot complete job while dispute is active.");
+      return;
+    }
 
     modal.confirm({
       title: "Mark Job as Complete?",
@@ -198,6 +217,17 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4 bg-gray-50/30">
+      {/* 🟢 Dispute Banner - Show at top if active */}
+      {dispute && (
+        <DisputeBanner
+          dispute={dispute}
+          onWithdraw={() => {
+            message.success("Dispute withdrawn successfully!");
+            fetchData();
+          }}
+        />
+      )}
+
       {/* 1. Job Details Card */}
       <Card
         className="!rounded-xl !shadow-sm !border-gray-200 !bg-white"
@@ -225,8 +255,8 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                 job.status === "open"
                   ? "success"
                   : job.status === "in_progress"
-                  ? "processing"
-                  : "default"
+                    ? "processing"
+                    : "default"
               }
               className="!rounded-full !text-[10px] !uppercase !m-0"
             >
@@ -265,7 +295,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
             </Title>
           </div>
 
-          {/* Escrow Stats (Only show if contract exists) */}
+          {/* Escrow Stats */}
           {contract && (
             <div className="mt-3 space-y-2 text-xs">
               <div className="flex justify-between text-gray-500">
@@ -281,7 +311,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                 </span>
               </div>
 
-              {/* 🟢 NEW: Explicitly show the remaining balance */}
               {Number(contract.escrow_funded_amount) -
                 Number(contract.escrow_released_amount) >
                 0 && (
@@ -392,7 +421,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                     />
                   )}
 
-                  {isArtisan && !pendingRequest && (
+                  {isArtisan && !pendingRequest && !dispute && (
                     <Button
                       block
                       type="primary"
@@ -405,7 +434,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                   )}
 
                   {/* Mark Complete Button */}
-                  {isCustomer && (
+                  {isCustomer && !dispute && (
                     <Button
                       block
                       icon={<FlagOutlined />}
@@ -413,6 +442,34 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                       className="!rounded-lg !border-gray-300 !text-gray-700 hover:!border-gray-500 !h-9 !text-sm"
                     >
                       Mark Job as Complete
+                    </Button>
+                  )}
+
+                  {/* 🟢 Raise Dispute Button - Only show if escrow funded and no active dispute */}
+                  {contract.escrow_funded_amount > 0 && !dispute && (
+                    <Button
+                      block
+                      danger
+                      icon={<WarningOutlined />}
+                      onClick={() => setIsRaiseDisputeOpen(true)}
+                      className="!rounded-lg !h-9 !text-sm"
+                    >
+                      Raise Dispute
+                    </Button>
+                  )}
+
+                  {/* 🟢 View Dispute Button - Show if dispute exists */}
+                  {dispute && (
+                    <Button
+                      block
+                      type="primary"
+                      icon={<WarningOutlined />}
+                      onClick={() =>
+                        (window.location.href = `/dashboard/disputes/${dispute.id}`)
+                      }
+                      className="!rounded-lg !bg-orange-600 hover:!bg-orange-700 !border-0 !h-9 !text-sm"
+                    >
+                      View Dispute Details
                     </Button>
                   )}
                 </div>
@@ -433,6 +490,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
         </Card>
       )}
 
+      {/* Modals */}
       {contract && (
         <RequestPaymentModal
           open={isRequestModalOpen}
@@ -440,6 +498,25 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
           contractId={contract.id}
           maxAmount={Number(contract.total_agreed_amount || 0)}
           onRequestSuccess={fetchData}
+        />
+      )}
+
+      {/* 🟢 Raise Dispute Modal */}
+      {contract && (
+        <RaiseDisputeModal
+          open={isRaiseDisputeOpen}
+          onClose={() => setIsRaiseDisputeOpen(false)}
+          contractId={contract.id}
+          conversationId={conversation.id}
+          amountDisputed={
+            Number(contract.escrow_funded_amount) -
+            Number(contract.escrow_released_amount) -
+            Number(contract.escrow_refunded_amount)
+          }
+          onSuccess={() => {
+            setIsRaiseDisputeOpen(false);
+            fetchData();
+          }}
         />
       )}
     </div>

@@ -11,6 +11,7 @@ import {
   Divider,
   App,
   Checkbox,
+  Spin,
 } from "antd";
 import {
   FileTextOutlined,
@@ -26,81 +27,17 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
+import {
+  Category,
+  fetchCategoriesWithSubcategories,
+} from "@/lib/helpers/categories";
 
 const { TextArea } = Input;
 const { Text } = Typography;
 
 // ─────────────────────────────────────────────────────────────
-// CONSTANTS (Included for self-containment)
+// DYNAMIC FIELDS (Still hardcoded - these are form-specific)
 // ─────────────────────────────────────────────────────────────
-
-const SERVICE_CATEGORIES: { value: string; label: string }[] = [
-  { value: "home-services", label: "🏠 Home Services" },
-  { value: "events", label: "🎉 Events & Parties" },
-  { value: "wellness", label: "💆 Health & Wellness" },
-  { value: "tech", label: "💻 Tech & IT" },
-  { value: "creative", label: "🎨 Creative & Design" },
-  { value: "lessons", label: "📚 Lessons & Tutoring" },
-  { value: "automotive", label: "🚗 Automotive" },
-  { value: "other", label: "📦 Other" },
-];
-
-const SERVICE_SUBCATEGORIES: Record<
-  string,
-  { value: string; label: string }[]
-> = {
-  "home-services": [
-    { value: "cleaning", label: "Cleaning" },
-    { value: "plumbing", label: "Plumbing" },
-    { value: "electrical", label: "Electrical" },
-    { value: "painting", label: "Painting & Decorating" },
-    { value: "moving", label: "Moving & Delivery" },
-    { value: "gardening", label: "Gardening" },
-    { value: "appliance-repair", label: "Appliance Repair" },
-  ],
-  events: [
-    { value: "photography", label: "Photography" },
-    { value: "catering", label: "Catering" },
-    { value: "music", label: "Music & Entertainment" },
-    { value: "planning", label: "Event Planning" },
-    { value: "decorations", label: "Decorations & Setup" },
-  ],
-  wellness: [
-    { value: "massage", label: "Massage Therapy" },
-    { value: "fitness", label: "Personal Training" },
-    { value: "beauty", label: "Beauty & Hair" },
-    { value: "counseling", label: "Counseling & Therapy" },
-  ],
-  tech: [
-    { value: "web-dev", label: "Web Development" },
-    { value: "repair", label: "Device Repair" },
-    { value: "support", label: "IT Support" },
-    { value: "app-dev", label: "Mobile App Development" },
-  ],
-  creative: [
-    { value: "graphic-design", label: "Graphic Design" },
-    { value: "video", label: "Video Editing" },
-    { value: "writing", label: "Content Writing" },
-    { value: "photography", label: "Photography" },
-  ],
-  lessons: [
-    { value: "academic", label: "Academic Tutoring" },
-    { value: "music-lessons", label: "Music Lessons" },
-    { value: "language", label: "Language Lessons" },
-    { value: "skills", label: "Skill Coaching" },
-  ],
-  automotive: [
-    { value: "mechanic", label: "Auto Repair" },
-    { value: "detailing", label: "Car Detailing" },
-    { value: "towing", label: "Towing & Recovery" },
-    { value: "parts", label: "Parts & Accessories" },
-  ],
-  other: [
-    { value: "consulting", label: "Consulting" },
-    { value: "delivery", label: "Delivery Services" },
-    { value: "misc", label: "Miscellaneous" },
-  ],
-};
 
 const DYNAMIC_FIELDS: Record<
   string,
@@ -210,6 +147,24 @@ export default function EditJobDrawer({
     null
   );
 
+  // 🟢 Fetch categories from database
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategoriesWithSubcategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    loadCategories();
+  }, []);
+
   useEffect(() => {
     if (open && job) {
       setSelectedCategory(job.category || null);
@@ -232,6 +187,18 @@ export default function EditJobDrawer({
       });
     }
   }, [open, job, form]);
+
+  // 🟢 Get subcategories for selected category from database
+  const getSubcategoryOptions = () => {
+    if (!selectedCategory) return [];
+    const category = categories.find((c) => c.value === selectedCategory);
+    return (
+      category?.subcategories.map((s) => ({
+        value: s.value,
+        label: s.label,
+      })) || []
+    );
+  };
 
   const dynamicFields = useMemo(() => {
     if (!selectedSubcategory) return [];
@@ -301,6 +268,24 @@ export default function EditJobDrawer({
     }
   };
 
+  if (loadingCategories) {
+    return (
+      <Drawer
+        open={open}
+        onClose={onClose}
+        size={520}
+        closable={false}
+        styles={{
+          body: { padding: "24px" },
+        }}
+      >
+        <div className="flex justify-center items-center py-20">
+          <Spin size="large" />
+        </div>
+      </Drawer>
+    );
+  }
+
   return (
     <Drawer
       title={
@@ -318,7 +303,7 @@ export default function EditJobDrawer({
           </div>
         </div>
       }
-      size={520} // Increased width slightly to accommodate more fields
+      size={520}
       onClose={onClose}
       open={open}
       closable={false}
@@ -395,8 +380,17 @@ export default function EditJobDrawer({
               >
                 <Select
                   placeholder="Select"
-                  options={SERVICE_CATEGORIES}
+                  options={categories.map((c) => ({
+                    value: c.value,
+                    label: `${c.icon || ""} ${c.label}`,
+                  }))}
                   onChange={handleCategoryChange}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
                   className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
                 />
               </Form.Item>
@@ -413,13 +407,15 @@ export default function EditJobDrawer({
               >
                 <Select
                   placeholder="Select"
-                  options={
-                    selectedCategory
-                      ? SERVICE_SUBCATEGORIES[selectedCategory]
-                      : []
-                  }
+                  options={getSubcategoryOptions()}
                   disabled={!selectedCategory}
                   onChange={handleSubcategoryChange}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
                   className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
                 />
               </Form.Item>

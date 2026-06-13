@@ -15,9 +15,12 @@ import {
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
-import { SERVICE_CATEGORIES, SERVICE_SUBCATEGORIES } from "../JobPostingForm";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import JobDetailDrawer from "./JobDetailDrawer";
+import {
+  Category,
+  fetchCategoriesWithSubcategories,
+} from "@/lib/helpers/categories";
 
 interface Props {
   job: JobListing;
@@ -36,13 +39,19 @@ export default function JobCard({
   creditCost = 10,
   isArtisanViewer = false,
 }: Props) {
-  const categoryConfig = SERVICE_CATEGORIES.find(
-    (c) => c.value === job.category
-  );
-  const subcategoryConfig = SERVICE_SUBCATEGORIES[job.category]?.find(
-    (s) => s.value === job.subcategory
-  );
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const categoryConfig = categories.find((c) => c.value === job.category);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      const data = await fetchCategoriesWithSubcategories();
+      setCategories(data);
+    };
+    loadCategories();
+  }, []);
 
   const budgetLabel =
     {
@@ -164,7 +173,7 @@ export default function JobCard({
               isCompact ? "text-base line-clamp-2" : "text-lg line-clamp-2"
             }`}
           >
-            {subcategoryConfig?.label || job.title}
+            {job.title}
           </h3>
 
           {/* ───────── Description ───────── */}

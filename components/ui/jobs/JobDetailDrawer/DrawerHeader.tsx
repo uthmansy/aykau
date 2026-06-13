@@ -1,4 +1,5 @@
-// components/jobs/DrawerHeader.tsx
+"use client";
+
 import { Button, Tag } from "antd";
 import {
   ArrowLeftOutlined,
@@ -7,10 +8,11 @@ import {
   CalendarOutlined,
 } from "@ant-design/icons";
 import { JobListing } from "@/lib/jobs/types";
+import { useEffect, useState } from "react";
 import {
-  SERVICE_CATEGORIES,
-  SERVICE_SUBCATEGORIES,
-} from "../../JobPostingForm";
+  Category,
+  fetchCategoriesWithSubcategories,
+} from "@/lib/helpers/categories";
 
 interface Props {
   job: JobListing;
@@ -25,12 +27,17 @@ export default function DrawerHeader({
   creditBalance,
   showBalance,
 }: Props) {
-  const categoryConfig = SERVICE_CATEGORIES.find(
-    (c) => c.value === job.category
-  );
-  const subcategoryConfig = SERVICE_SUBCATEGORIES[job.category]?.find(
-    (s) => s.value === job.subcategory
-  );
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const categoryConfig = categories.find((c) => c.value === job.category);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      const data = await fetchCategoriesWithSubcategories();
+      setCategories(data);
+    };
+    loadCategories();
+  }, []);
 
   const budgetLabel =
     {
@@ -95,7 +102,7 @@ export default function DrawerHeader({
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-gray-900 leading-tight tracking-tight">
-          {subcategoryConfig?.label || job.subcategory}
+          {job.title}
         </h2>
 
         {/* Meta Row */}

@@ -3,8 +3,7 @@
 
 import { Modal, Button, Divider } from "antd";
 import { JobListing } from "@/lib/jobs/types";
-import { SERVICE_SUBCATEGORIES } from "../../JobPostingForm";
-import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
+import useJobCreditCost from "@/hooks/useJobCreditCost";
 
 interface Props {
   open: boolean;
@@ -23,11 +22,7 @@ export default function UnlockConsentModal({
   creditBalance,
   loading,
 }: Props) {
-  const subcategoryConfig = SERVICE_SUBCATEGORIES[job.category]?.find(
-    (s) => s.value === job.subcategory
-  );
-  const jobTitle = subcategoryConfig?.label || job.subcategory;
-  const creditCost = useJobCreditCost(job); // 🟢 Use hook
+  const creditCost = useJobCreditCost(job);
 
   return (
     <Modal
@@ -51,7 +46,9 @@ export default function UnlockConsentModal({
 
         {/* Job Info Card */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-          <p className="font-semibold text-gray-900 mb-1">{jobTitle}</p>
+          <p className="font-semibold text-gray-900 mb-1">
+            {job.title || job.subcategory}
+          </p>
           <p className="text-sm text-gray-500">
             Unlock cost:{" "}
             <strong className="text-gray-900">{creditCost} credits</strong>

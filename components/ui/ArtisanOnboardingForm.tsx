@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   Steps,
@@ -11,20 +11,23 @@ import {
   App,
   InputNumber,
   Typography,
-  Descriptions,
   Tag,
-  Space,
   Avatar,
 } from "antd";
 import { useArtisanOnboardingStore } from "@/store/artisanOnboarding.store";
 import { Grid } from "antd";
-import { getLgasByState } from "@/lib/helpers/location";
 import LocationSelect from "./jobs/LocationSelect";
 import { supabase } from "@/services/supabase/client";
 import { useOnboardingFormInitialValues } from "@/hooks/useOnboardingFormInitialValues";
 import { appendOnboardingRole } from "@/lib/supabase/profiles";
 import { capitalize } from "@/lib/helpers/functions";
 import { UserOutlined } from "@ant-design/icons";
+import {
+  Category,
+  fetchCategoriesWithSubcategories,
+  getProfessionSelectOptions,
+} from "@/lib/helpers/categories";
+import { PROFESSION_TITLES } from "@/lib/professions";
 
 const { useBreakpoint } = Grid;
 
@@ -36,8 +39,6 @@ export default function ArtisanOnboardingForm({
   onComplete,
 }: OnboardingFormProps) {
   const [form] = Form.useForm();
-  const stateCode = Form.useWatch("state", form);
-  const lgas = stateCode ? getLgasByState(stateCode) : [];
   const { step, setStep, updateData, data } = useArtisanOnboardingStore();
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
@@ -45,6 +46,27 @@ export default function ArtisanOnboardingForm({
 
   const screens = useBreakpoint();
   const isMobile = !screens.md;
+
+  // 🟢 Fetch categories from database
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      const data = await fetchCategoriesWithSubcategories();
+      setCategories(data);
+    };
+    loadCategories();
+  }, []);
+
+  // 🟢 Flatten categories into simple list of subcategory options
+  const allSubcategoryOptions = useMemo(() => {
+    return categories.flatMap((category) =>
+      category.subcategories.map((sub) => ({
+        value: sub.value,
+        label: `${sub.label}`,
+      }))
+    );
+  }, [categories]);
 
   const next = async () => {
     try {
@@ -64,16 +86,13 @@ export default function ArtisanOnboardingForm({
       const finalData = { ...data, ...values };
       setLoading(true);
 
-      // 1. Get Supabase client + user
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // 2. 🎯 CALL THE HELPER to safely append role
       const roleUpdate = await appendOnboardingRole(user.id, "artisan");
 
-      // 3. Build the full profile payload
       const profilePayload = {
         id: user.id,
         full_name: finalData.fullName,
@@ -87,20 +106,19 @@ export default function ArtisanOnboardingForm({
         state_code: finalData.state,
         city: finalData.city,
         coordinates: finalData.lgaCoordinates,
+        preferred_subcategories: finalData.preferredSubcategories || [],
 
-        // Artisan-specific data
+        // Artisan-specific data (removed professions)
         artisan_data: {
-          professions: finalData.professions,
           skills: finalData.skills,
           experience: finalData.experience,
           hourlyRate: finalData.hourlyRate,
+          professions: finalData.professions, // For display
         },
 
-        // 🔹 Merge the safe role update
         ...roleUpdate,
       };
 
-      // 4. Upsert to Supabase
       const { error } = await supabase
         .from("profiles")
         .upsert(profilePayload, { onConflict: "id" });
@@ -159,6 +177,7 @@ export default function ArtisanOnboardingForm({
       ),
     },
 
+    // 🟢 NEW: Services You Offer (replaces Professions)
     {
       title: "Professions",
       content: (
@@ -176,25 +195,50 @@ export default function ArtisanOnboardingForm({
           >
             <Select
               mode="multiple"
-              placeholder="Select your professions"
-              allowClear
-              maxTagCount="responsive"
-              options={[
-                { value: "plumber", label: "Plumber" },
-                { value: "electrician", label: "Electrician" },
-                { value: "cleaner", label: "Cleaner" },
-                { value: "mechanic", label: "Mechanic" },
-                { value: "designer", label: "Designer" },
-              ]}
-              style={{ width: "100%" }}
+              placeholder="Select your professional titles"
+              options={PROFESSION_TITLES}
             />
           </Form.Item>
-
-          <Form.Item name="skills" label="Skills (press enter to add)">
+          <Form.Item name="skills" label="Specific Skills (press enter to add)">
             <Select
               mode="tags"
               style={{ width: "100%" }}
-              placeholder="e.g. wiring, repairs, installations"
+              placeholder="e.g. wiring, pipe repair, React, SEO"
+            />
+          </Form.Item>
+        </>
+      ),
+    },
+    {
+      title: "Services You Offer",
+      content: (
+        <>
+          <Form.Item
+            name="preferredSubcategories"
+            label="What services do you want to get alerts for?"
+            rules={[
+              {
+                required: true,
+                type: "array",
+                message: "Please select at least one service",
+              },
+            ]}
+            extra="You will receive instant email notifications when customers post jobs matching these services."
+          >
+            <Select
+              mode="multiple"
+              placeholder="Search and select services (e.g., Plumbing, Web Dev)"
+              allowClear
+              maxTagCount="responsive"
+              options={allSubcategoryOptions}
+              style={{ width: "100%" }}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              loading={categories.length === 0}
             />
           </Form.Item>
         </>
@@ -366,39 +410,6 @@ export default function ArtisanOnboardingForm({
                     {data.phone || "—"}
                   </Typography.Text>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    paddingBottom: 12,
-                    borderBottom: "1px dashed #e5e7eb",
-                  }}
-                >
-                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                    NIN
-                  </Typography.Text>
-                  <Typography.Text
-                    style={{ textAlign: "right", fontFamily: "monospace" }}
-                  >
-                    {data.nin
-                      ? data.nin.replace(/(\d{4})(\d{4})(\d{3})/, "$1 **** $3")
-                      : "—"}
-                  </Typography.Text>
-                </div>
-                <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
-                >
-                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                    Address Preference
-                  </Typography.Text>
-                  <Tag
-                    color="default"
-                    variant="solid"
-                    style={{ margin: 0, borderRadius: 6 }}
-                  >
-                    {data.addressPreference?.replace("-", " ") || "—"}
-                  </Tag>
-                </div>
               </div>
             </div>
           </div>
@@ -446,233 +457,151 @@ export default function ArtisanOnboardingForm({
                       .join(", ") || "—"}
                   </Typography.Text>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 🛠️ Artisan Fields */}
+          <div style={{ marginBottom: 20 }}>
+            <Typography.Text
+              type="secondary"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              Professional Details
+            </Typography.Text>
+            <div
+              style={{
+                background: "#fafafa",
+                borderRadius: 12,
+                padding: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
+                {/* 🟢 Show preferred subcategories instead of professions */}
+                {data.preferredSubcategories &&
+                  data.preferredSubcategories.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        paddingBottom: 12,
+                        borderBottom: "1px dashed #e5e7eb",
+                      }}
+                    >
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: 15 }}
+                      >
+                        Services
+                      </Typography.Text>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                          justifyContent: "flex-end",
+                          maxWidth: "60%",
+                        }}
+                      >
+                        {data.preferredSubcategories.map((subValue: string) => {
+                          // Find the label from categories
+                          const category = categories.find((c) =>
+                            c.subcategories.some((s) => s.value === subValue)
+                          );
+                          const subcategory = category?.subcategories.find(
+                            (s) => s.value === subValue
+                          );
+                          return (
+                            <Tag
+                              key={subValue}
+                              variant="solid"
+                              color="default"
+                              style={{ margin: 0, borderRadius: 6 }}
+                            >
+                              {subcategory?.label || subValue}
+                            </Tag>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Skills
+                  </Typography.Text>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                      maxWidth: "60%",
+                    }}
+                  >
+                    {data.skills?.length ? (
+                      data.skills.map((s) => (
+                        <Tag
+                          key={s}
+                          variant="solid"
+                          color="default"
+                          style={{ margin: 0, borderRadius: 6 }}
+                        >
+                          {capitalize(s)}
+                        </Tag>
+                      ))
+                    ) : (
+                      <Typography.Text type="secondary">
+                        Not specified
+                      </Typography.Text>
+                    )}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingBottom: 12,
+                    borderBottom: "1px dashed #e5e7eb",
+                  }}
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+                    Experience
+                  </Typography.Text>
+                  <Typography.Text style={{ textAlign: "right" }}>
+                    {data.experience} years
+                  </Typography.Text>
+                </div>
                 <div
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
                   <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                    Postal Code
+                    Hourly Rate
                   </Typography.Text>
-                  <Typography.Text style={{ textAlign: "right" }}>
-                    {data.postCode || "—"}
+                  <Typography.Text strong>
+                    ₦ {(data.hourlyRate ?? 0).toLocaleString("en-NG")}
                   </Typography.Text>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* 🛠️ Artisan Fields (only render if present) */}
-          {data.professions && data.professions?.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <Typography.Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  display: "block",
-                  marginBottom: 8,
-                }}
-              >
-                Professional Details
-              </Typography.Text>
-              <div
-                style={{
-                  background: "#fafafa",
-                  borderRadius: 12,
-                  padding: 16,
-                  border: "1px solid #f0f0f0",
-                }}
-              >
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingBottom: 12,
-                      borderBottom: "1px dashed #e5e7eb",
-                    }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Professions
-                    </Typography.Text>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                        justifyContent: "flex-end",
-                      }}
-                    >
-                      {data.professions &&
-                        data.professions.map((p) => (
-                          <Tag
-                            key={p}
-                            variant="solid"
-                            color="default"
-                            style={{ margin: 0, borderRadius: 6 }}
-                          >
-                            {capitalize(p)}
-                          </Tag>
-                        ))}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingBottom: 12,
-                      borderBottom: "1px dashed #e5e7eb",
-                    }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Skills
-                    </Typography.Text>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                        justifyContent: "flex-end",
-                      }}
-                    >
-                      {data.skills?.length ? (
-                        data.skills.map((s) => (
-                          <Tag
-                            key={s}
-                            variant="solid"
-                            color="default"
-                            style={{ margin: 0, borderRadius: 6 }}
-                          >
-                            {capitalize(s)}
-                          </Tag>
-                        ))
-                      ) : (
-                        <Typography.Text type="secondary">
-                          Not specified
-                        </Typography.Text>
-                      )}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingBottom: 12,
-                      borderBottom: "1px dashed #e5e7eb",
-                    }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Experience
-                    </Typography.Text>
-                    <Typography.Text style={{ textAlign: "right" }}>
-                      {data.experience} years
-                    </Typography.Text>
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Hourly Rate
-                    </Typography.Text>
-                    <Typography.Text strong>
-                      ₦ {(data.hourlyRate ?? 0).toLocaleString("en-NG")}
-                    </Typography.Text>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 🔍 Customer Fields (only render if present) */}
-          {data.serviceInterests && data.serviceInterests?.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <Typography.Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  display: "block",
-                  marginBottom: 8,
-                }}
-              >
-                Service Preferences
-              </Typography.Text>
-              <div
-                style={{
-                  background: "#fafafa",
-                  borderRadius: 12,
-                  padding: 16,
-                  border: "1px solid #f0f0f0",
-                }}
-              >
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingBottom: 12,
-                      borderBottom: "1px dashed #e5e7eb",
-                    }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Categories
-                    </Typography.Text>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                        justifyContent: "flex-end",
-                      }}
-                    >
-                      {data.serviceInterests &&
-                        data.serviceInterests.map((s) => (
-                          <Tag
-                            key={s}
-                            color="purple"
-                            style={{ margin: 0, borderRadius: 6 }}
-                          >
-                            {capitalize(s)}
-                          </Tag>
-                        ))}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingBottom: 12,
-                      borderBottom: "1px dashed #e5e7eb",
-                    }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Response Time
-                    </Typography.Text>
-                    <Tag color="orange" style={{ margin: 0, borderRadius: 6 }}>
-                      {data.responseTime?.replace("-", " ") || "—"}
-                    </Tag>
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <Typography.Text type="secondary" style={{ fontSize: 15 }}>
-                      Budget Style
-                    </Typography.Text>
-                    <Tag color="cyan" style={{ margin: 0, borderRadius: 6 }}>
-                      {data.budgetStyle?.replace("-", " ") || "—"}
-                    </Tag>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* 📝 Bio */}
           <div>

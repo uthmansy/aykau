@@ -15,6 +15,7 @@ export type OnboardingData = {
   state?: string;
   city?: string;
   lgaCoordinates?: { lat: number; lng: number };
+  preferredSubcategories?: string[];
 
   // 🔹 Artisan-only
   professions?: string[];

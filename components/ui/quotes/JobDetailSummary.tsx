@@ -1,12 +1,16 @@
 "use client";
 
-import { Card, Typography, Divider, Tag } from "antd";
+import { useState, useEffect } from "react";
+import { Card, Typography, Divider, Tag, Spin } from "antd";
 import {
   EnvironmentOutlined,
   WalletOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
-import { SERVICE_CATEGORIES, SERVICE_SUBCATEGORIES } from "../JobPostingForm";
+import {
+  Category,
+  fetchCategoriesWithSubcategories,
+} from "@/lib/helpers/categories";
 import { JobListing } from "@/lib/jobs/types";
 
 const { Title, Text, Paragraph } = Typography;
@@ -16,10 +20,27 @@ interface Props {
 }
 
 function JobDetailSummary({ job }: Props) {
-  const categoryConfig = SERVICE_CATEGORIES.find(
-    (c) => c.value === job.category
-  );
-  const subcategoryConfig = SERVICE_SUBCATEGORIES[job.category]?.find(
+  // 🟢 Fetch categories from database
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategoriesWithSubcategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // 🟢 Find category and subcategory from database
+  const categoryConfig = categories.find((c) => c.value === job.category);
+  const subcategoryConfig = categoryConfig?.subcategories.find(
     (s) => s.value === job.subcategory
   );
 
@@ -32,6 +53,21 @@ function JobDetailSummary({ job }: Props) {
       "500k+": "₦500k+",
       flexible: "Flexible",
     }[job.budget] || job.budget;
+
+  if (loading) {
+    return (
+      <div className="lg:col-span-1">
+        <Card
+          className="sticky rounded-xl shadow-sm border-gray-100"
+          styles={{ body: { padding: "16px" } }}
+        >
+          <div className="flex justify-center py-8">
+            <Spin />
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="lg:col-span-1">
@@ -46,7 +82,7 @@ function JobDetailSummary({ job }: Props) {
         <div className="space-y-4">
           <div>
             <Tag color="default" variant="solid" className="mb-2 rounded-full">
-              {categoryConfig?.label}
+              {categoryConfig?.label || job.category}
             </Tag>
             <Title level={5} className="mb-1! text-gray-900!">
               {subcategoryConfig?.label || job.subcategory}

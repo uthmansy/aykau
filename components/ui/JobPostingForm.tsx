@@ -30,6 +30,10 @@ import { supabase } from "@/services/supabase/client";
 import { ServiceCategory } from "@/types/db";
 import LocationSelect from "./jobs/LocationSelect";
 import MapPinSelector from "./MapPinSelector";
+import {
+  Category,
+  fetchCategoriesWithSubcategories,
+} from "@/lib/helpers/categories";
 
 const { useBreakpoint } = Grid;
 
@@ -62,75 +66,6 @@ export interface JobPostData {
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
-
-export const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
-  { value: "home-services", label: "🏠 Home Services" },
-  { value: "events", label: "🎉 Events & Parties" },
-  { value: "wellness", label: "💆 Health & Wellness" },
-  { value: "tech", label: "💻 Tech & IT" },
-  { value: "creative", label: "🎨 Creative & Design" },
-  { value: "lessons", label: "📚 Lessons & Tutoring" },
-  { value: "automotive", label: "🚗 Automotive" },
-  { value: "other", label: "📦 Other" },
-];
-
-export const SERVICE_SUBCATEGORIES: Record<
-  ServiceCategory,
-  { value: string; label: string }[]
-> = {
-  "home-services": [
-    { value: "cleaning", label: "Cleaning" },
-    { value: "plumbing", label: "Plumbing" },
-    { value: "electrical", label: "Electrical" },
-    { value: "painting", label: "Painting & Decorating" },
-    { value: "moving", label: "Moving & Delivery" },
-    { value: "gardening", label: "Gardening" },
-    { value: "appliance-repair", label: "Appliance Repair" },
-  ],
-  events: [
-    { value: "photography", label: "Photography" },
-    { value: "catering", label: "Catering" },
-    { value: "music", label: "Music & Entertainment" },
-    { value: "planning", label: "Event Planning" },
-    { value: "decorations", label: "Decorations & Setup" },
-  ],
-  wellness: [
-    { value: "massage", label: "Massage Therapy" },
-    { value: "fitness", label: "Personal Training" },
-    { value: "beauty", label: "Beauty & Hair" },
-    { value: "counseling", label: "Counseling & Therapy" },
-  ],
-  tech: [
-    { value: "web-dev", label: "Web Development" },
-    { value: "repair", label: "Device Repair" },
-    { value: "support", label: "IT Support" },
-    { value: "app-dev", label: "Mobile App Development" },
-  ],
-  creative: [
-    { value: "graphic-design", label: "Graphic Design" },
-    { value: "video", label: "Video Editing" },
-    { value: "writing", label: "Content Writing" },
-    { value: "photography", label: "Photography" },
-  ],
-  lessons: [
-    { value: "academic", label: "Academic Tutoring" },
-    { value: "music-lessons", label: "Music Lessons" },
-    { value: "language", label: "Language Lessons" },
-    { value: "skills", label: "Skill Coaching" },
-  ],
-  automotive: [
-    { value: "mechanic", label: "Auto Repair" },
-    { value: "detailing", label: "Car Detailing" },
-    { value: "towing", label: "Towing & Recovery" },
-    { value: "parts", label: "Parts & Accessories" },
-  ],
-  other: [
-    { value: "consulting", label: "Consulting" },
-    { value: "delivery", label: "Delivery Services" },
-    { value: "misc", label: "Miscellaneous" },
-  ],
-};
-
 const BUDGET_RANGES = [
   { value: "under-10k", label: "Under ₦10,000" },
   { value: "10k-50k", label: "₦10,000 - ₦50,000" },
@@ -274,6 +209,32 @@ export default function JobPostingForm() {
 
   const screens = useBreakpoint();
   const isMobile = !screens.md;
+
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      const data = await fetchCategoriesWithSubcategories();
+      setCategories(data);
+    };
+    loadCategories();
+  }, []);
+
+  // Use categories for your cascading selects
+  const categoryOptions = categories.map((c) => ({
+    value: c.value,
+    label: `${c.icon || ""} ${c.label}`,
+  }));
+
+  const getSubcategoryOptions = (categoryValue: string) => {
+    const category = categories.find((c) => c.value === categoryValue);
+    return (
+      category?.subcategories?.map((s) => ({
+        value: s.value,
+        label: s.label,
+      })) || [] // ✅ The extra ?. protects against null
+    );
+  };
 
   // Get dynamic fields for current subcategory
   const dynamicFields = useMemo(() => {
@@ -439,7 +400,7 @@ export default function JobPostingForm() {
           >
             <Select
               placeholder="Select a service category"
-              options={SERVICE_CATEGORIES}
+              options={categoryOptions} // 🟢 CHANGED: Use dynamic DB options
               onChange={handleCategoryChange}
               showSearch
               filterOption={(input, option) =>
@@ -450,6 +411,7 @@ export default function JobPostingForm() {
               size={isMobile ? "middle" : "large"}
             />
           </Form.Item>
+
           <Form.Item
             name="subcategory"
             label="Be more specific"
@@ -459,8 +421,8 @@ export default function JobPostingForm() {
             <Select
               placeholder="Select the specific service"
               options={
-                selectedCategory ? SERVICE_SUBCATEGORIES[selectedCategory] : []
-              }
+                selectedCategory ? getSubcategoryOptions(selectedCategory) : []
+              } // 🟢 CHANGED: Use dynamic DB options
               disabled={!selectedCategory}
               onChange={handleSubcategoryChange}
               showSearch
@@ -757,14 +719,14 @@ export default function JobPostingForm() {
             <div style={{ lineHeight: "2.2" }}>
               <p>
                 <strong>🔧 Service:</strong>{" "}
-                {
-                  SERVICE_CATEGORIES.find((c) => c.value === data.category)
-                    ?.label
-                }{" "}
-                →{" "}
-                {SERVICE_SUBCATEGORIES[data.category as ServiceCategory]?.find(
-                  (s) => s.value === data.subcategory
-                )?.label || data.subcategory}
+                {/* 🟢 CHANGED: Lookup from database state */}
+                {categories.find((c) => c.value === data.category)?.label ||
+                  data.category}
+                {" → "}
+                {categories
+                  .find((c) => c.value === data.category)
+                  ?.subcategories.find((s) => s.value === data.subcategory)
+                  ?.label || data.subcategory}
               </p>
               <p>
                 <strong>📝 Title:</strong> {data.title || "—"}
