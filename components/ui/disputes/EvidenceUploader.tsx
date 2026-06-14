@@ -1,19 +1,12 @@
-// components/ui/disputes/EvidenceUploader.tsx
 "use client";
 
 import { useState } from "react";
-import { Upload, Button, App, Typography, Progress } from "antd";
-import {
-  UploadOutlined,
-  FileImageOutlined,
-  FileTextOutlined,
-} from "@ant-design/icons";
+import { Upload, App, Progress } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
 
-const { Text } = Typography;
-
 interface Props {
-  contractId?: string; // Optional now, since we might use it on the dispute page directly
+  contractId?: string;
   disputeId?: string;
   onUploadComplete: (url: string, fileType: "photo" | "document") => void;
   maxFiles?: number;
@@ -36,7 +29,6 @@ export default function EvidenceUploader({
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // 🟢 Sanitize filename to prevent path issues with spaces/special chars
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const folder = disputeId
         ? `disputes/${disputeId}`
@@ -45,23 +37,16 @@ export default function EvidenceUploader({
 
       const { error: uploadError } = await supabase.storage
         .from("dispute-evidence")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
-      if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
-        throw new Error(uploadError.message);
-      }
+      if (uploadError) throw new Error(uploadError.message);
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("dispute-evidence").getPublicUrl(filePath);
-
       const fileType = file.type.startsWith("image/") ? "photo" : "document";
-      onUploadComplete(publicUrl, fileType);
 
+      onUploadComplete(publicUrl, fileType);
       message.success(`${file.name} uploaded successfully`);
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -91,11 +76,11 @@ export default function EvidenceUploader({
     }
 
     handleUpload(file);
-    return false; // Prevent default Ant Design upload
+    return false;
   };
 
   return (
-    <div>
+    <div className="w-full">
       <Upload
         beforeUpload={beforeUpload}
         showUploadList={false}
@@ -103,33 +88,29 @@ export default function EvidenceUploader({
         maxCount={maxFiles}
         accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
       >
-        <Button
-          icon={<UploadOutlined />}
-          loading={uploading}
-          block
-          size="large"
-          className="!border-dashed !border-gray-300 !h-20 hover:!border-blue-400 hover:!text-blue-600 transition-colors"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex gap-2">
-              <FileImageOutlined className="text-gray-400" />
-              <FileTextOutlined className="text-gray-400" />
-            </div>
-            <Text className="text-gray-600">
-              Click to upload photos or documents
-            </Text>
-            <Text className="text-gray-400 text-xs">
-              Max {maxFiles} files, 10MB each
-            </Text>
+        {/* ✅ Redesigned Drop Zone: 16px radius, dashed outline, Navy hover tint */}
+        <div className="border-2 border-dashed border-outline-variant hover:border-primary hover:bg-primary/5 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer bg-surface-container-lowest">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <UploadOutlined className="text-primary text-xl" />
           </div>
-        </Button>
+          <div className="text-center">
+            <p className="font-inter text-[14px] font-medium text-on-surface mb-1">
+              Click to upload photos or documents
+            </p>
+            <p className="font-inter text-[12px] text-on-surface-variant">
+              Max {maxFiles} files, 10MB each
+            </p>
+          </div>
+        </div>
       </Upload>
+
       {uploading && (
         <Progress
           percent={50}
           status="active"
-          className="mt-3"
+          className="mt-4"
           showInfo={false}
+          // ThemeProvider automatically applies the Navy primary color to Progress bars
         />
       )}
     </div>

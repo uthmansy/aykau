@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Tag } from "antd";
+import { Button } from "antd";
 import {
   ArrowLeftOutlined,
   EnvironmentOutlined,
@@ -28,15 +28,10 @@ export default function DrawerHeader({
   showBalance,
 }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
-
   const categoryConfig = categories.find((c) => c.value === job.category);
 
   useEffect(() => {
-    const loadCategories = async () => {
-      const data = await fetchCategoriesWithSubcategories();
-      setCategories(data);
-    };
-    loadCategories();
+    fetchCategoriesWithSubcategories().then(setCategories);
   }, []);
 
   const budgetLabel =
@@ -50,76 +45,97 @@ export default function DrawerHeader({
     }[job.budget] || job.budget;
 
   const urgencyConfig = {
-    asap: { label: "Urgent", color: "red", icon: "🔥" },
-    "this-week": { label: "This Week", color: "orange", icon: "📅" },
-    "this-month": { label: "This Month", color: "blue", icon: "🗓️" },
-    planning: { label: "Flexible", color: "default", icon: "✨" },
-  }[job.urgency] || { label: "Flexible", color: "default", icon: "✨" };
+    asap: {
+      label: "Urgent",
+      bg: "bg-secondary-container/20",
+      text: "text-secondary",
+    },
+    "this-week": {
+      label: "This Week",
+      bg: "bg-primary/5",
+      text: "text-primary",
+    },
+    "this-month": {
+      label: "This Month",
+      bg: "bg-primary/5",
+      text: "text-primary",
+    },
+    planning: {
+      label: "Flexible",
+      bg: "bg-tertiary-container/10",
+      text: "text-tertiary",
+    },
+  }[job.urgency] || {
+    label: "Flexible",
+    bg: "bg-tertiary-container/10",
+    text: "text-tertiary",
+  };
 
   return (
-    <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-6 py-5">
+    <div className="sticky top-0 z-10 bg-surface-glass backdrop-blur-glass border-b border-outline-variant/30 px-6 py-5">
       <div className="space-y-4">
-        {/* Top Row: Back + Status */}
         <div className="flex items-center justify-between">
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-900 transition-colors"
+            className="text-on-surface-variant! hover:text-primary! bg-transparent! font-inter! text-[14px]! font-medium! p-0!"
           >
             Back
           </Button>
           <div className="flex items-center gap-2">
             {showBalance && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
-                <WalletOutlined className="text-gray-500 text-xs" />
-                <span className="text-xs font-medium text-gray-700">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/10">
+                <WalletOutlined className="text-primary text-[12px]" />
+                <span className="font-inter text-[12px] font-semibold text-primary">
                   {creditBalance} credits
                 </span>
               </div>
             )}
             {job.is_expired && (
-              <Tag color="default" className="font-medium rounded-full">
+              <span className="px-2.5 py-0.5 rounded-full bg-on-surface-variant/10 text-on-surface-variant font-inter text-[10px] font-bold uppercase tracking-wider">
                 Expired
-              </Tag>
+              </span>
             )}
           </div>
         </div>
 
-        {/* Category + Urgency */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-semibold bg-primary/5 text-primary border border-primary/10">
             {categoryConfig?.label}
           </span>
-          <Tag
-            color={urgencyConfig.color}
-            className="py-1 px-3 text-xs font-medium rounded-full flex items-center gap-1 border-0"
+          <span
+            className={`px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-1 ${urgencyConfig.bg} ${urgencyConfig.text}`}
           >
-            <span>{urgencyConfig.icon}</span>
+            <span>
+              {urgencyConfig.label === "Urgent"
+                ? "🔥"
+                : urgencyConfig.label === "Flexible"
+                  ? "✨"
+                  : "📅"}
+            </span>
             {urgencyConfig.label}
-          </Tag>
+          </span>
         </div>
 
-        {/* Title */}
-        <h2 className="text-2xl font-bold text-gray-900 leading-tight tracking-tight">
+        <h2 className="font-manrope text-[24px] font-semibold text-primary leading-tight tracking-tight">
           {job.title}
         </h2>
 
-        {/* Meta Row */}
-        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+        <div className="flex flex-wrap gap-4 font-inter text-[14px] text-on-surface-variant">
           <span className="flex items-center gap-1.5">
-            <WalletOutlined className="text-gray-400" />
-            <strong className="text-gray-900 font-semibold">
+            <WalletOutlined className="text-outline" />
+            <strong className="text-on-surface font-semibold">
               {budgetLabel}
             </strong>
           </span>
           <span className="flex items-center gap-1.5">
-            <EnvironmentOutlined className="text-gray-400" />
+            <EnvironmentOutlined className="text-outline" />
             {job.state_code}
           </span>
           {job.preferred_date && (
             <span className="flex items-center gap-1.5">
-              <CalendarOutlined className="text-gray-400" />
+              <CalendarOutlined className="text-outline" />
               {new Date(job.preferred_date).toLocaleDateString("en-NG", {
                 weekday: "short",
                 month: "short",

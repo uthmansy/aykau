@@ -1,8 +1,7 @@
-// components/ui/disputes/DisputeThread.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Input, Button, Avatar, Typography, Spin, Empty } from "antd";
+import { Input, Button, Avatar, Spin, Empty } from "antd";
 import { SendOutlined, UserOutlined } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
@@ -11,7 +10,6 @@ import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
 
-const { Text } = Typography;
 const { TextArea } = Input;
 
 interface Message {
@@ -20,11 +18,7 @@ interface Message {
   content: string;
   is_admin_message: boolean;
   created_at: string;
-  sender?: {
-    full_name: string;
-    avatar_url: string | null;
-    role: string;
-  };
+  sender?: { full_name: string; avatar_url: string | null; role: string };
 }
 
 interface Props {
@@ -41,8 +35,6 @@ export default function DisputeThread({ disputeId }: Props) {
 
   useEffect(() => {
     fetchMessages();
-
-    // Subscribe to realtime updates
     const channel = supabase
       .channel(`dispute-${disputeId}`)
       .on(
@@ -54,25 +46,15 @@ export default function DisputeThread({ disputeId }: Props) {
           filter: `dispute_id=eq.${disputeId}`,
         },
         async (payload) => {
-          // Fetch the new message with sender details
           const { data } = await supabase
             .from("dispute_messages")
-            .select(
-              `
-              *,
-              sender:sender_id(full_name, avatar_url, role)
-            `
-            )
+            .select(`*, sender:sender_id(full_name, avatar_url, role)`)
             .eq("id", payload.new.id)
             .single();
-
-          if (data) {
-            setMessages((prev) => [...prev, data as Message]);
-          }
+          if (data) setMessages((prev) => [...prev, data as Message]);
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -81,7 +63,6 @@ export default function DisputeThread({ disputeId }: Props) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -91,19 +72,13 @@ export default function DisputeThread({ disputeId }: Props) {
     try {
       const { data, error } = await supabase
         .from("dispute_messages")
-        .select(
-          `
-          *,
-          sender:sender_id(full_name, avatar_url, role)
-        `
-        )
+        .select(`*, sender:sender_id(full_name, avatar_url, role)`)
         .eq("dispute_id", disputeId)
         .order("created_at", { ascending: true });
-
       if (error) throw error;
       setMessages(data || []);
     } catch (error) {
-      console.error("Fetch messages error:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -111,7 +86,6 @@ export default function DisputeThread({ disputeId }: Props) {
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
-
     setSending(true);
     try {
       const { error } = await supabase.from("dispute_messages").insert({
@@ -120,43 +94,47 @@ export default function DisputeThread({ disputeId }: Props) {
         content: newMessage.trim(),
         is_admin_message: false,
       });
-
       if (error) throw error;
       setNewMessage("");
     } catch (error) {
-      console.error("Send message error:", error);
+      console.error(error);
     } finally {
       setSending(false);
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="flex items-center justify-center py-12">
         <Spin size="large" />
       </div>
     );
-  }
 
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-lg border border-gray-200">
+    <div className="flex flex-col h-[600px] bg-surface-container-low rounded-2xl border border-outline-variant/20 overflow-hidden">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
-        <Text strong className="text-lg">
+      <div className="border-b border-outline-variant/20 px-6 py-4 bg-surface-container-lowest">
+        <h3 className="font-manrope text-[20px] font-semibold text-primary">
           Dispute Communication
-        </Text>
-        <Text className="block text-gray-500 text-sm mt-1">
+        </h3>
+        <p className="font-inter text-[14px] text-on-surface-variant mt-1">
           Discuss the dispute with the other party and admin
-        </Text>
+        </p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-surface-container-low">
         {messages.length === 0 ? (
-          <Empty
-            description="No messages yet. Start the conversation."
-            className="py-12"
-          />
+          <div className="h-full flex items-center justify-center">
+            <Empty
+              description={
+                <span className="font-inter text-on-surface-variant">
+                  No messages yet. Start the conversation.
+                </span>
+              }
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          </div>
         ) : (
           messages.map((msg) => {
             const isOwnMessage = msg.sender_id === userId;
@@ -171,49 +149,38 @@ export default function DisputeThread({ disputeId }: Props) {
                 <Avatar
                   src={msg.sender?.avatar_url}
                   icon={<UserOutlined />}
-                  className={
-                    isAdmin
-                      ? "!bg-blue-500"
-                      : isOwnMessage
-                        ? "!bg-gray-700"
-                        : "!bg-gray-400"
-                  }
+                  className={`flex-none ${isAdmin ? "bg-tertiary/20! text-tertiary!" : isOwnMessage ? "bg-primary! text-on-primary!" : "bg-surface-container-high! text-on-surface-variant!"}`}
                 />
+
                 <div
-                  className={`flex flex-col ${
-                    isOwnMessage ? "items-end" : "items-start"
-                  } max-w-[70%]`}
+                  className={`flex flex-col ${isOwnMessage ? "items-end" : "items-start"} max-w-[75%]`}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Text
-                      strong
-                      className={`text-sm ${
-                        isAdmin ? "text-blue-600" : "text-gray-700"
-                      }`}
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span
+                      className={`font-inter text-[12px] font-semibold ${isAdmin ? "text-tertiary" : "text-on-surface-variant"}`}
                     >
                       {msg.sender?.full_name || "Unknown"}
-                      {isAdmin && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                          ADMIN
-                        </span>
-                      )}
-                    </Text>
-                    <Text className="text-xs text-gray-400">
+                    </span>
+                    {isAdmin && (
+                      <span className="px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-inter text-[10px] font-bold uppercase tracking-wider">
+                        Admin
+                      </span>
+                    )}
+                    <span className="font-inter text-[11px] text-outline">
                       {dayjs(msg.created_at).fromNow()}
-                    </Text>
+                    </span>
                   </div>
+
                   <div
-                    className={`px-4 py-2 rounded-lg ${
+                    className={`px-4 py-3 font-inter text-[14px] leading-relaxed whitespace-pre-wrap break-words ${
                       isAdmin
-                        ? "bg-blue-50 border border-blue-200"
+                        ? "bg-tertiary/5 border border-tertiary/20 text-tertiary rounded-2xl"
                         : isOwnMessage
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-900"
+                          ? "bg-primary text-on-primary rounded-2xl rounded-br-sm"
+                          : "bg-surface-container-lowest text-on-surface border border-outline-variant/20 rounded-2xl rounded-bl-sm"
                     }`}
                   >
-                    <Text className={isOwnMessage ? "text-white" : ""}>
-                      {msg.content}
-                    </Text>
+                    {msg.content}
                   </div>
                 </div>
               </div>
@@ -224,8 +191,8 @@ export default function DisputeThread({ disputeId }: Props) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
-        <div className="flex gap-3">
+      <div className="border-t border-outline-variant/20 px-6 py-4 bg-surface-container-lowest">
+        <div className="flex gap-3 items-end">
           <TextArea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -237,7 +204,7 @@ export default function DisputeThread({ disputeId }: Props) {
                 handleSend();
               }
             }}
-            className="!rounded-lg"
+            className="flex-1! bg-surface-container! border-none! rounded-lg! py-3! px-4! font-inter! text-[14px]! resize-none! focus:ring-1! focus:ring-primary/30!"
           />
           <Button
             type="primary"
@@ -245,7 +212,7 @@ export default function DisputeThread({ disputeId }: Props) {
             onClick={handleSend}
             loading={sending}
             disabled={!newMessage.trim()}
-            className="!h-auto !rounded-lg"
+            className="rounded-lg! h-auto! py-3! px-5! bg-secondary! hover:bg-secondary/90! border-none! font-inter! text-[14px]! font-medium! mb-0!"
           >
             Send
           </Button>

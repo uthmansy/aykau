@@ -11,8 +11,6 @@ import {
   App,
   Upload,
   Divider,
-  Tag,
-  Tooltip,
   Checkbox,
   Typography,
 } from "antd";
@@ -37,10 +35,6 @@ import {
 
 const { useBreakpoint } = Grid;
 
-// ─────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────
-
 export interface JobPostData {
   category?: ServiceCategory;
   subcategory?: string;
@@ -63,9 +57,6 @@ export interface JobPostData {
   customDetails?: Record<string, string>;
 }
 
-// ─────────────────────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────────────────────
 const BUDGET_RANGES = [
   { value: "under-10k", label: "Under ₦10,000" },
   { value: "10k-50k", label: "₦10,000 - ₦50,000" },
@@ -82,17 +73,7 @@ const URGENCY_OPTIONS = [
   { value: "planning", label: "🕐 Just planning / Flexible" },
 ];
 
-// Dynamic fields config per subcategory
-const DYNAMIC_FIELDS: Record<
-  string,
-  {
-    name: string;
-    label: string;
-    type: "text" | "number" | "date" | "select";
-    options?: { value: string; label: string }[];
-    placeholder?: string;
-  }[]
-> = {
+const DYNAMIC_FIELDS: Record<string, any[]> = {
   cleaning: [
     {
       name: "numRooms",
@@ -180,12 +161,7 @@ const DYNAMIC_FIELDS: Record<
       placeholder: "e.g. User login, Payment integration, Blog",
     },
   ],
-  // Add more as needed...
 };
-
-// ─────────────────────────────────────────────────────────────
-// COMPONENT
-// ─────────────────────────────────────────────────────────────
 
 export default function JobPostingForm() {
   const [form] = Form.useForm();
@@ -209,79 +185,64 @@ export default function JobPostingForm() {
 
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-
   const [categories, setCategories] = useState<Category[]>([]);
 
+  // ✅ Shared Design System Classes
+  const inputClasses =
+    "w-full! bg-surface-container! border-none! rounded-lg! h-12! px-4! font-inter! text-[16px]! focus:ring-1! focus:ring-primary/30!";
+  const selectClasses =
+    "w-full! [&_.ant-select-selector]:bg-surface-container! [&_.ant-select-selector]:border-none! [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-12! [&_.ant-select-selector]:shadow-none! [&_.ant-select-selector]:font-inter! [&_.ant-select-selector]:text-[16px]!";
+  const textAreaClasses =
+    "w-full! bg-surface-container! border-none! rounded-lg! py-3! px-4! font-inter! text-[16px]! focus:ring-1! focus:ring-primary/30! resize-none!";
+  const labelClass =
+    "font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant";
+
   useEffect(() => {
-    const loadCategories = async () => {
-      const data = await fetchCategoriesWithSubcategories();
-      setCategories(data);
-    };
-    loadCategories();
+    fetchCategoriesWithSubcategories().then(setCategories);
   }, []);
 
-  // Use categories for your cascading selects
   const categoryOptions = categories.map((c) => ({
     value: c.value,
     label: `${c.icon || ""} ${c.label}`,
   }));
+  const getSubcategoryOptions = (categoryValue: string) =>
+    categories
+      .find((c) => c.value === categoryValue)
+      ?.subcategories?.map((s) => ({ value: s.value, label: s.label })) || [];
 
-  const getSubcategoryOptions = (categoryValue: string) => {
-    const category = categories.find((c) => c.value === categoryValue);
-    return (
-      category?.subcategories?.map((s) => ({
-        value: s.value,
-        label: s.label,
-      })) || [] // ✅ The extra ?. protects against null
-    );
-  };
-
-  // Get dynamic fields for current subcategory
-  const dynamicFields = useMemo(() => {
-    if (!selectedSubcategory) return [];
-    return DYNAMIC_FIELDS[selectedSubcategory] || [];
-  }, [selectedSubcategory]);
+  const dynamicFields = useMemo(
+    () =>
+      selectedSubcategory ? DYNAMIC_FIELDS[selectedSubcategory] || [] : [],
+    [selectedSubcategory]
+  );
 
   const submit = async () => {
     try {
       const values = await form.validateFields();
       const finalData: JobPostData = { ...data, ...values };
-
-      // 1️⃣ Auth check
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) {
-        message.error("Please log in to post a request");
-        return;
-      }
+      if (!user) return message.error("Please log in to post a request");
 
       setLoading(true);
-
-      // 2️⃣ Generate job ID upfront (so we can use it for photo paths)
       const jobId = crypto.randomUUID();
       let photoPaths: string[] = [];
 
-      // 3️⃣ Upload photos first (if any)
       if (finalData.photos?.length) {
-        const uploadPromises = finalData.photos.map(async (file: File) => {
-          const ext = file.name.split(".").pop() || "jpg";
-          const path = `${user.id}/${jobId}/${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 9)}.${ext}`;
-
-          const { error } = await supabase.storage
-            .from("job-photos")
-            .upload(path, file, { contentType: file.type });
-
-          if (error) throw error;
-          return path; // Store relative path, not full URL
-        });
-
-        photoPaths = await Promise.all(uploadPromises);
+        photoPaths = await Promise.all(
+          finalData.photos.map(async (file: File) => {
+            const ext = file.name.split(".").pop() || "jpg";
+            const path = `${user.id}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
+            const { error } = await supabase.storage
+              .from("job-photos")
+              .upload(path, file, { contentType: file.type });
+            if (error) throw error;
+            return path;
+          })
+        );
       }
 
-      // 4️⃣ Extract dynamic fields (cleaning: numRooms, plumbing: issueType, etc.)
       const knownFields = [
         "category",
         "subcategory",
@@ -301,7 +262,6 @@ export default function JobPostingForm() {
         Object.entries(values).filter(([key]) => !knownFields.includes(key))
       );
 
-      // 5️⃣ Insert job request
       const { error: dbError } = await supabase.from("job_requests").insert({
         id: jobId,
         customer_id: user.id,
@@ -329,12 +289,10 @@ export default function JobPostingForm() {
       });
 
       if (dbError) throw dbError;
-
       message.success("Request posted! You'll receive quotes within 24 hours.");
       setSubmitted(true);
       reset();
     } catch (err: any) {
-      console.error("Job post failed:", err);
       message.error(err.message || "Failed to submit request");
     } finally {
       setLoading(false);
@@ -346,46 +304,41 @@ export default function JobPostingForm() {
     setSelectedSubcategory(null);
     form.setFieldsValue({ subcategory: undefined });
   };
-
-  const handleSubcategoryChange = (value: string) => {
+  const handleSubcategoryChange = (value: string) =>
     setSelectedSubcategory(value);
-  };
 
   const handlePhotoUpload = (info: any) => {
-    if (info.file.status === "done") {
+    if (info.file.status === "done")
       message.success(`${info.file.name} uploaded`);
-    }
-    if (info.file.status === "error") {
+    if (info.file.status === "error")
       message.error(`${info.file.name} upload failed`);
-    }
-
-    // Update previews
     const newPreviews = info.fileList
       .filter((f: any) => f.originFileObj)
       .map((f: any) => URL.createObjectURL(f.originFileObj));
     setPhotoPreviews(newPreviews);
-
-    // Store files in form data
-    const files = info.fileList
-      .map((f: any) => f.originFileObj)
-      .filter(Boolean);
-    form.setFieldsValue({ photos: files });
+    form.setFieldsValue({
+      photos: info.fileList.map((f: any) => f.originFileObj).filter(Boolean),
+    });
   };
 
   const removePhoto = (index: number) => {
     const newPreviews = [...photoPreviews];
     newPreviews.splice(index, 1);
     setPhotoPreviews(newPreviews);
-
-    const currentFiles = form.getFieldValue("photos") || [];
-    const newFiles = [...currentFiles];
+    const newFiles = [...(form.getFieldValue("photos") || [])];
     newFiles.splice(index, 1);
     form.setFieldsValue({ photos: newFiles });
   };
 
-  // ─────────────────────────────────────────────────────────
-  // FORM STEPS
-  // ─────────────────────────────────────────────────────────
+  const saveDraft = () => {
+    form
+      .validateFields()
+      .then((values) => {
+        updateData(values);
+        message.info("Draft saved locally");
+      })
+      .catch(() => message.warning("Complete required fields to save draft"));
+  };
 
   const steps = [
     {
@@ -394,13 +347,16 @@ export default function JobPostingForm() {
         <>
           <Form.Item
             name="category"
-            label="What service do you need?"
+            label={
+              <span className={labelClass}>What service do you need?</span>
+            }
             rules={[{ required: true, message: "Please select a category" }]}
             initialValue={data.category}
+            className="mb-4!"
           >
             <Select
               placeholder="Select a service category"
-              options={categoryOptions} // 🟢 CHANGED: Use dynamic DB options
+              options={categoryOptions}
               onChange={handleCategoryChange}
               showSearch
               filterOption={(input, option) =>
@@ -408,21 +364,21 @@ export default function JobPostingForm() {
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
-              size={isMobile ? "middle" : "large"}
+              className={selectClasses}
             />
           </Form.Item>
-
           <Form.Item
             name="subcategory"
-            label="Be more specific"
+            label={<span className={labelClass}>Be more specific</span>}
             rules={[{ required: true, message: "Please specify the service" }]}
             initialValue={data.subcategory}
+            className="mb-4!"
           >
             <Select
               placeholder="Select the specific service"
               options={
                 selectedCategory ? getSubcategoryOptions(selectedCategory) : []
-              } // 🟢 CHANGED: Use dynamic DB options
+              }
               disabled={!selectedCategory}
               onChange={handleSubcategoryChange}
               showSearch
@@ -431,41 +387,35 @@ export default function JobPostingForm() {
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
-              size={isMobile ? "middle" : "large"}
+              className={selectClasses}
             />
           </Form.Item>
-          {/* Dynamic fields based on subcategory */}
           {dynamicFields.length > 0 && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: "16px",
-                background: "#f9f9f9",
-                borderRadius: 8,
-              }}
-            >
-              <p style={{ margin: "0 0 12px", fontWeight: 500 }}>
-                Additional details
-              </p>
+            <div className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20 space-y-4 mt-6">
+              <h4 className={labelClass}>Additional Details</h4>
               {dynamicFields.map((field) => (
                 <Form.Item
                   key={field.name}
                   name={field.name}
-                  label={field.label}
-                  rules={[{ required: false }]}
-                  style={{ marginBottom: 12 }}
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface">
+                      {field.label}
+                    </span>
+                  }
+                  className="mb-0!"
                 >
                   {field.type === "select" ? (
                     <Select
                       placeholder={field.placeholder}
                       options={field.options}
+                      className={selectClasses}
                     />
-                  ) : field.type === "number" ? (
-                    <Input type="number" placeholder={field.placeholder} />
-                  ) : field.type === "date" ? (
-                    <Input type="date" />
                   ) : (
-                    <Input placeholder={field.placeholder} />
+                    <Input
+                      type={field.type}
+                      placeholder={field.placeholder}
+                      className={inputClasses}
+                    />
                   )}
                 </Form.Item>
               ))}
@@ -478,35 +428,49 @@ export default function JobPostingForm() {
       title: "More Info",
       content: (
         <>
-          <Form.Item name="title" label="Job Title" initialValue={data.title}>
+          <Form.Item
+            name="title"
+            label={<span className={labelClass}>Job Title</span>}
+            initialValue={data.title}
+            className="mb-4!"
+          >
             <Input
               placeholder="e.g. Interior Designer Needed For my New Apartment."
-              size={isMobile ? "middle" : "large"}
+              className={inputClasses}
             />
           </Form.Item>
           <Form.Item
             name="description"
-            label="Describe what you need"
+            label={<span className={labelClass}>Describe what you need</span>}
             rules={[
               { required: true, message: "Please describe your request" },
               { min: 20, message: "Please provide at least 20 characters" },
             ]}
-            extra={`${
-              form.getFieldValue("description")?.length || 0
-            }/500 characters`}
             initialValue={data.description}
+            className="mb-4!"
+            extra={
+              <span className="font-inter text-[12px] text-outline mt-1 block">
+                {form.getFieldValue("description")?.length || 0}/500 characters
+              </span>
+            }
           >
             <Input.TextArea
               rows={4}
-              placeholder="e.g. I need a plumber to fix a leaking kitchen sink. The leak started yesterday and is getting worse..."
+              placeholder="e.g. I need a plumber to fix a leaking kitchen sink..."
               maxLength={500}
               showCount={false}
+              className={textAreaClasses}
             />
           </Form.Item>
           <Form.Item
             name="frequency"
-            label="How often do you need this service?"
+            label={
+              <span className={labelClass}>
+                How often do you need this service?
+              </span>
+            }
             initialValue={data.frequency}
+            className="mb-4!"
           >
             <Select
               options={[
@@ -516,12 +480,17 @@ export default function JobPostingForm() {
                 { value: "monthly", label: "Monthly" },
               ]}
               placeholder="Select frequency"
+              className={selectClasses}
             />
           </Form.Item>
           <Form.Item
-            label="Add photos"
+            label={<span className={labelClass}>Add photos</span>}
             name="photos"
-            extra="Help professionals understand your request better (optional)"
+            extra={
+              <span className="font-inter text-[12px] text-outline mt-1 block">
+                Help professionals understand your request better (optional)
+              </span>
+            }
           >
             <Upload
               listType="picture-card"
@@ -535,13 +504,11 @@ export default function JobPostingForm() {
                 url: src,
               }))}
               beforeUpload={(file) => {
-                const isImage = file.type.startsWith("image/");
-                if (!isImage) {
+                if (!file.type.startsWith("image/")) {
                   message.error("You can only upload image files!");
                   return Upload.LIST_IGNORE;
                 }
-                const isLt5M = file.size / 1024 / 1024 < 5;
-                if (!isLt5M) {
+                if (file.size / 1024 / 1024 > 5) {
                   message.error("Image must be smaller than 5MB!");
                   return Upload.LIST_IGNORE;
                 }
@@ -552,11 +519,14 @@ export default function JobPostingForm() {
                 const index = photoPreviews.indexOf(file.url || "");
                 if (index > -1) removePhoto(index);
               }}
+              className="[&_.ant-upload-list-item-container]:rounded-lg! [&_.ant-upload-list-item]:rounded-lg! [&_.ant-upload-select]:rounded-lg! [&_.ant-upload-select]:border-outline-variant! [&_.ant-upload-select]:bg-surface-container!"
             >
               {photoPreviews.length >= 5 ? null : (
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Upload</div>
+                <div className="flex flex-col items-center justify-center h-full">
+                  <PlusOutlined className="text-2xl text-primary mb-2" />
+                  <span className="font-inter text-[12px] text-on-surface-variant">
+                    Upload
+                  </span>
                 </div>
               )}
             </Upload>
@@ -570,9 +540,10 @@ export default function JobPostingForm() {
         <>
           <Form.Item
             name="serviceType"
-            label="Service location type"
+            label={<span className={labelClass}>Service location type</span>}
             rules={[{ required: true, message: "Please select an option" }]}
             initialValue={data.serviceType}
+            className="mb-4!"
           >
             <Select
               options={[
@@ -581,7 +552,7 @@ export default function JobPostingForm() {
                 { value: "remote", label: "💻 Remote / Online" },
                 { value: "other", label: "📍 Other location" },
               ]}
-              size={isMobile ? "middle" : "large"}
+              className={selectClasses}
             />
           </Form.Item>
           {serviceLocationType !== "remote" && (
@@ -589,24 +560,42 @@ export default function JobPostingForm() {
               <LocationSelect updateData={updateData} />
               <Form.Item
                 name="address"
-                label="Address / Landmark (optional)"
-                extra="Your exact address is only shared with professionals you accept"
+                label={
+                  <span className={labelClass}>
+                    Address / Landmark (optional)
+                  </span>
+                }
+                extra={
+                  <span className="font-inter text-[12px] text-outline mt-1 block">
+                    Your exact address is only shared with professionals you
+                    accept
+                  </span>
+                }
                 initialValue={data.address}
+                className="mb-4!"
               >
                 <Input
                   placeholder="e.g. Near Shoprite, Victoria Island"
-                  size={isMobile ? "middle" : "large"}
+                  className={inputClasses}
                 />
               </Form.Item>
-
               <Form.Item
                 name="accessNotes"
-                label="Access instructions (optional)"
-                extra="e.g. Gate code, parking info, building floor"
+                label={
+                  <span className={labelClass}>
+                    Access instructions (optional)
+                  </span>
+                }
+                extra={
+                  <span className="font-inter text-[12px] text-outline mt-1 block">
+                    e.g. Gate code, parking info, building floor
+                  </span>
+                }
               >
                 <Input.TextArea
                   rows={2}
                   placeholder="Help professionals arrive prepared"
+                  className={textAreaClasses}
                 />
               </Form.Item>
             </>
@@ -621,7 +610,7 @@ export default function JobPostingForm() {
             content: (
               <Form.Item
                 name="mapCoordinates"
-                label="Map Coordinates"
+                label={<span className={labelClass}>Map Coordinates</span>}
                 rules={[
                   {
                     required: true,
@@ -629,255 +618,175 @@ export default function JobPostingForm() {
                       "Please click or drag the pin to select a location",
                   },
                 ]}
-                // Ant Design expects `value` and `onChange` by default.
-                // No extra props needed here.
               >
                 <MapPinSelector
                   defaultCoords={{
                     lat: data.lgaCoordinates?.lat || 0,
                     lng: data.lgaCoordinates?.lng || 0,
                   }}
-                  height="350px"
+                  height="400px"
                 />
               </Form.Item>
             ),
           },
         ]
       : []),
-
     {
       title: "Budget & Time",
       content: (
         <>
           <Form.Item
             name="budget"
-            label="Your budget range"
+            label={<span className={labelClass}>Your budget range</span>}
             rules={[
               { required: true, message: "Please select a budget range" },
             ]}
             initialValue={data.budget}
+            className="mb-4!"
           >
             <Select
               placeholder="Select your budget"
               options={BUDGET_RANGES}
-              popupRender={(menu) => (
-                <>
-                  {menu}
-                  <Divider style={{ margin: "8px 0" }} />
-                  <div
-                    style={{
-                      padding: "8px 12px",
-                      fontSize: "12px",
-                      color: "#666",
-                    }}
-                  >
-                    <InfoCircleOutlined style={{ marginRight: 4 }} />
-                    Not sure? Select "Flexible" to get quotes from professionals
-                  </div>
-                </>
-              )}
-              size={isMobile ? "middle" : "large"}
+              className={selectClasses}
             />
           </Form.Item>
-
           <Form.Item
             name="urgency"
-            label="When do you need this done?"
+            label={
+              <span className={labelClass}>When do you need this done?</span>
+            }
             rules={[{ required: true, message: "Please select a timeline" }]}
             initialValue={data.urgency}
+            className="mb-4!"
           >
-            <Select
-              options={URGENCY_OPTIONS}
-              size={isMobile ? "middle" : "large"}
-            />
+            <Select options={URGENCY_OPTIONS} className={selectClasses} />
           </Form.Item>
-
           <Form.Item
             name="preferredDate"
-            label="Preferred date (optional)"
+            label={
+              <span className={labelClass}>Preferred date (optional)</span>
+            }
             initialValue={data.preferredDate}
           >
-            <Input
-              type="date"
-              style={{ width: "100%" }}
-              size={isMobile ? "middle" : "large"}
-            />
+            <Input type="date" className={inputClasses} />
           </Form.Item>
         </>
       ),
     },
-
     {
       title: "Review",
       content: (
-        <div>
-          <Card
-            size="small"
-            title="Request Summary"
-            style={{ marginBottom: 16 }}
-          >
-            <div style={{ lineHeight: "2.2" }}>
-              <p>
-                <strong>🔧 Service:</strong>{" "}
-                {/* 🟢 CHANGED: Lookup from database state */}
-                {categories.find((c) => c.value === data.category)?.label ||
-                  data.category}
-                {" → "}
-                {categories
-                  .find((c) => c.value === data.category)
-                  ?.subcategories.find((s) => s.value === data.subcategory)
-                  ?.label || data.subcategory}
-              </p>
-              <p>
-                <strong>📝 Title:</strong> {data.title || "—"}
-              </p>
-              <p>
-                <strong>📝 Description:</strong> {data.description || "—"}
-              </p>
-
-              {photoPreviews.length > 0 && (
-                <p>
-                  <strong>📷 Photos:</strong> {photoPreviews.length} attached
-                </p>
-              )}
-
-              <div style={{ marginBottom: 20 }}>
-                <Typography.Text
-                  type="secondary"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    display: "block",
-                    marginBottom: 8,
-                  }}
-                >
-                  Location
-                </Typography.Text>
-                <div
-                  style={{
-                    background: "#fafafa",
-                    borderRadius: 12,
-                    padding: 16,
-                    border: "1px solid #f0f0f0",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 14,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        paddingBottom: 12,
-                        borderBottom: "1px dashed #e5e7eb",
-                      }}
-                    >
-                      <Typography.Text
-                        type="secondary"
-                        style={{ fontSize: 15 }}
-                      >
-                        Area
-                      </Typography.Text>
-                      <Typography.Text style={{ textAlign: "right" }}>
-                        {[
-                          data.lgaName,
-                          data.state,
-                          data.lgaCoordinates?.lat,
-                          data.lgaCoordinates?.lng,
-                        ]
-                          .filter(Boolean)
-                          .join(", ") || "—"}
-                      </Typography.Text>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        paddingBottom: 12,
-                        borderBottom: "1px dashed #e5e7eb",
-                      }}
-                    >
-                      <Typography.Text
-                        type="secondary"
-                        style={{ fontSize: 15 }}
-                      >
-                        Map Coordinates
-                      </Typography.Text>
-                      <Typography.Text style={{ textAlign: "right" }}>
-                        {[data.mapCoordinates?.lat, data.mapCoordinates?.lng]
-                          .filter(Boolean)
-                          .join(", ") || "—"}
-                      </Typography.Text>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Typography.Text
-                        type="secondary"
-                        style={{ fontSize: 15 }}
-                      >
-                        Postal Code
-                      </Typography.Text>
-                    </div>
-                  </div>
-                </div>
+        <div className="space-y-6">
+          <h3 className={labelClass}>Request Summary</h3>
+          <div className="bg-surface-container rounded-2xl p-6 border border-outline-variant/20 space-y-4">
+            {[
+              {
+                label: "Service",
+                value: `${categories.find((c) => c.value === data.category)?.label || data.category} → ${categories.find((c) => c.value === data.category)?.subcategories.find((s) => s.value === data.subcategory)?.label || data.subcategory}`,
+              },
+              { label: "Title", value: data.title || "—" },
+              { label: "Description", value: data.description || "—" },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="flex justify-between font-inter text-[14px] gap-4"
+              >
+                <span className="text-on-surface-variant shrink-0">
+                  {item.label}
+                </span>
+                <span className="text-on-surface font-medium text-right">
+                  {item.value}
+                </span>
               </div>
-              <p>
-                <strong>🏠 Service at:</strong>{" "}
+            ))}
+            {photoPreviews.length > 0 && (
+              <div className="flex justify-between font-inter text-[14px]">
+                <span className="text-on-surface-variant">Photos</span>
+                <span className="text-on-surface font-medium">
+                  {photoPreviews.length} attached
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-surface-container rounded-2xl p-6 border border-outline-variant/20 space-y-4">
+            <h4 className={labelClass}>Location Details</h4>
+            <div className="flex justify-between font-inter text-[14px]">
+              <span className="text-on-surface-variant">Area</span>
+              <span className="text-on-surface font-medium text-right">
+                {[data.lgaName, data.state].filter(Boolean).join(", ") || "—"}
+              </span>
+            </div>
+            <div className="flex justify-between font-inter text-[14px]">
+              <span className="text-on-surface-variant">Map Coordinates</span>
+              <span className="text-on-surface font-medium text-right font-mono text-[12px]">
+                {[data.mapCoordinates?.lat, data.mapCoordinates?.lng]
+                  .filter(Boolean)
+                  .join(", ") || "—"}
+              </span>
+            </div>
+            <div className="flex justify-between font-inter text-[14px]">
+              <span className="text-on-surface-variant">Service at</span>
+              <span className="text-on-surface font-medium text-right">
                 {{
                   home: "My home",
                   business: "My business",
                   remote: "Remote/Online",
                   other: "Other",
                 }[data.serviceType as string] || "—"}
-              </p>
-              <p>
-                <strong>💰 Budget:</strong>{" "}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-surface-container rounded-2xl p-6 border border-outline-variant/20 space-y-4">
+            <h4 className={labelClass}>Budget & Timeline</h4>
+            <div className="flex justify-between font-inter text-[14px]">
+              <span className="text-on-surface-variant">Budget</span>
+              <span className="text-on-surface font-medium text-right">
                 {BUDGET_RANGES.find((b) => b.value === data.budget)?.label ||
                   "—"}
-              </p>
-              <p>
-                <strong>⏰ Timeline:</strong>{" "}
+              </span>
+            </div>
+            <div className="flex justify-between font-inter text-[14px]">
+              <span className="text-on-surface-variant">Timeline</span>
+              <span className="text-on-surface font-medium text-right">
                 {URGENCY_OPTIONS.find((u) => u.value === data.urgency)?.label ||
                   "—"}
-              </p>
-              {data.preferredDate && (
-                <p>
-                  <strong>📅 Preferred date:</strong> {data.preferredDate}
-                </p>
-              )}
+              </span>
             </div>
-          </Card>
+            {data.preferredDate && (
+              <div className="flex justify-between font-inter text-[14px]">
+                <span className="text-on-surface-variant">Preferred date</span>
+                <span className="text-on-surface font-medium text-right">
+                  {data.preferredDate}
+                </span>
+              </div>
+            )}
+          </div>
 
-          <div
-            style={{
-              padding: "12px 16px",
-              background: "#f0f9ff",
-              borderRadius: 8,
-              border: "1px solid #bae7ff",
-            }}
-          >
-            <small style={{ color: "#1890ff" }}>
-              <CheckCircleOutlined style={{ marginRight: 4 }} />
+          <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 flex gap-3">
+            <CheckCircleOutlined className="text-primary text-xl mt-0.5 flex-none" />
+            <p className="font-inter text-[14px] text-on-surface-variant">
               By posting, you agree to our{" "}
-              <a href="/terms" target="_blank" rel="noopener">
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener"
+                className="text-primary font-medium hover:underline"
+              >
                 Terms
               </a>{" "}
               and{" "}
-              <a href="/privacy" target="_blank" rel="noopener">
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener"
+                className="text-primary font-medium hover:underline"
+              >
                 Privacy Policy
               </a>
               . Professionals will contact you via your selected methods.
-            </small>
+            </p>
           </div>
         </div>
       ),
@@ -886,192 +795,144 @@ export default function JobPostingForm() {
 
   const safeStep = Math.max(0, Math.min(step, steps.length - 1));
   useEffect(() => {
-    if (step !== safeStep) {
-      setStep(safeStep);
-    }
+    if (step !== safeStep) setStep(safeStep);
   }, [step, safeStep, setStep]);
 
   const next = async () => {
     try {
       const values = await form.validateFields();
       updateData(values);
-      setStep(safeStep + 1); // <-- Use safeStep
+      setStep(safeStep + 1);
     } catch {
       message.error("Please complete required fields");
     }
   };
+  const prev = () => setStep(safeStep - 1);
 
-  const prev = () => setStep(safeStep - 1); // <-- Use safeStep
-
-  // ─────────────────────────────────────────────────────────
-  // SUCCESS VIEW (after submission)
-  // ─────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <Card style={{ maxWidth: 600, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", padding: "40px 20px" }}>
-          <CheckCircleOutlined
-            style={{ fontSize: 64, color: "#52c41a", marginBottom: 16 }}
-          />
-          <h2 style={{ marginBottom: 8 }}>Request Posted! 🎉</h2>
-          <p style={{ color: "#666", marginBottom: 24 }}>
-            Professionals matching your request will contact you soon.
-          </p>
-
-          <div
-            style={{
-              background: "#f9f9f9",
-              padding: 16,
-              borderRadius: 8,
-              textAlign: "left",
-              marginBottom: 24,
-            }}
-          >
-            <p style={{ margin: "8px 0" }}>
-              <strong>📧</strong> Check your email for quote notifications
-            </p>
-            <p style={{ margin: "8px 0" }}>
-              <strong>📱</strong> You'll get SMS alerts for urgent requests
-            </p>
-            <p style={{ margin: "8px 0" }}>
-              <strong>🔔</strong> Manage responses in your dashboard
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <Button onClick={() => (window.location.href = "/dashboard")}>
-              Go to Dashboard
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => {
-                setSubmitted(false);
-                setStep(0);
-                reset();
-                form.resetFields();
-                setPhotoPreviews([]);
-              }}
-            >
-              Post Another Request
-            </Button>
-          </div>
+      <div className="max-w-2xl mx-auto px-margin-mobile md:px-margin-desktop py-16 text-center">
+        <div className="w-20 h-20 rounded-full bg-success-emerald/10 flex items-center justify-center mx-auto mb-6">
+          <CheckCircleOutlined className="text-success-emerald text-4xl" />
         </div>
-      </Card>
+        <h2 className="font-manrope text-[32px] font-semibold text-primary mb-2">
+          Request Posted! 🎉
+        </h2>
+        <p className="font-inter text-[16px] text-on-surface-variant mb-8">
+          Professionals matching your request will contact you soon.
+        </p>
+        <div className="bg-surface-container rounded-2xl p-6 border border-outline-variant/20 text-left space-y-3 mb-8">
+          <p className="font-inter text-[14px] text-on-surface flex items-center gap-2">
+            📧 Check your email for quote notifications
+          </p>
+          <p className="font-inter text-[14px] text-on-surface flex items-center gap-2">
+            📱 You'll get SMS alerts for urgent requests
+          </p>
+          <p className="font-inter text-[14px] text-on-surface flex items-center gap-2">
+            🔔 Manage responses in your dashboard
+          </p>
+        </div>
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Button
+            onClick={() => (window.location.href = "/dashboard")}
+            className="rounded-lg! h-auto! py-3! px-6! border-outline-variant! text-on-surface-variant! hover:border-primary! hover:text-primary! bg-transparent! font-inter! text-[14px]! font-medium!"
+          >
+            Go to Dashboard
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => {
+              setSubmitted(false);
+              setStep(0);
+              reset();
+              form.resetFields();
+              setPhotoPreviews([]);
+            }}
+            className="rounded-lg! h-auto! py-3! px-8! bg-secondary! hover:bg-secondary/90! border-none! text-on-secondary! font-inter! text-[14px]! font-medium! shadow-lg! shadow-secondary/20!"
+          >
+            Post Another Request
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card style={{ maxWidth: 800, margin: "0 auto" }}>
-      {/* Progress Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ margin: "0 0 8px" }}>Post a Request</h2>
-        <p style={{ margin: 0, color: "#666" }}>
-          Step {safeStep + 1} of {steps.length} • {steps[safeStep].title}{" "}
-          {/* <-- Updated */}
+    <div className="max-w-4xl mx-auto px-margin-mobile md:px-margin-desktop py-8 space-y-8">
+      <header>
+        <h1 className="font-manrope text-[32px] font-semibold text-primary leading-tight">
+          Post a Request
+        </h1>
+        <p className="font-inter text-[16px] text-on-surface-variant mt-2">
+          Step {safeStep + 1} of {steps.length} • {steps[safeStep].title}
         </p>
-      </div>
+      </header>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          gap: 32,
-          alignItems: "flex-start",
-        }}
-      >
-        {/* Steps Navigation */}
-        <div style={{ width: isMobile ? "100%" : 180, flexShrink: 0 }}>
-          <Steps
-            orientation={isMobile ? "horizontal" : "vertical"}
-            current={safeStep} // <-- Updated
-            items={steps.map((s) => ({ title: s.title }))}
-            size="small"
-            style={{ overflowX: isMobile ? "auto" : "visible" }}
-          />
-        </div>
+      <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-6 md:p-8">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="md:w-48 shrink-0 mb-6 md:mb-0">
+            <Steps
+              orientation={isMobile ? "horizontal" : "vertical"}
+              current={safeStep}
+              items={steps.map((s) => ({ title: s.title }))}
+              size="small"
+              className="[&_.ant-steps-item-title]:font-inter! [&_.ant-steps-item-title]:text-[14px]!"
+            />
+          </div>
 
-        {/* Form Content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Divider style={{ margin: "0 0 24px" }} dashed />
-
-          <Form form={form} layout="vertical" onFinish={submit}>
-            {steps[safeStep].content} {/* <-- Updated */}
-            {/* Navigation Buttons */}
-            <div
-              style={{
-                marginTop: 32,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 12,
-              }}
+          <div className="flex-1 min-w-0 border-t md:border-t-0 md:border-l border-outline-variant/20 pt-6 md:pt-0 md:pl-8">
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={submit}
+              requiredMark={false}
+              className="space-y-2"
             >
-              {safeStep > 0 && ( // <-- Updated
-                <Button onClick={prev} size={isMobile ? "middle" : "large"}>
-                  ← Back
-                </Button>
-              )}
+              {steps[safeStep].content}
 
-              <div
-                style={{
-                  marginLeft: "auto",
-                  display: "flex",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                {/* Save Draft */}
-                {safeStep < steps.length - 1 && ( // <-- Updated
+              <div className="flex justify-between items-center flex-wrap gap-4 mt-8 pt-6 border-t border-outline-variant/20">
+                {safeStep > 0 && (
                   <Button
-                    htmlType="button"
-                    onClick={() => {
-                      form
-                        .validateFields()
-                        .then((values) => {
-                          updateData(values);
-                          message.info("Draft saved locally");
-                        })
-                        .catch(() => {
-                          message.warning(
-                            "Complete required fields to save draft"
-                          );
-                        });
-                    }}
-                    size={isMobile ? "middle" : "large"}
+                    onClick={prev}
+                    className="rounded-lg! h-auto! py-3! px-6! border-outline-variant! text-on-surface-variant! hover:border-primary! hover:text-primary! bg-transparent! font-inter! text-[14px]! font-medium!"
                   >
-                    Save Draft
+                    ← Back
                   </Button>
                 )}
-
-                {safeStep < steps.length - 1 && ( // <-- Updated
-                  <Button type="primary" onClick={next}>
-                    Next
-                  </Button>
-                )}
-
-                {safeStep === steps.length - 1 && ( // <-- Updated
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    size={isMobile ? "middle" : "large"}
-                  >
-                    Post Request ✨
-                  </Button>
-                )}
+                <div className="flex gap-3 ml-auto">
+                  {safeStep < steps.length - 1 && (
+                    <Button
+                      onClick={saveDraft}
+                      className="rounded-lg! h-auto! py-3! px-6! border-primary! text-primary! hover:bg-primary/5! bg-transparent! font-inter! text-[14px]! font-medium!"
+                    >
+                      Save Draft
+                    </Button>
+                  )}
+                  {safeStep < steps.length - 1 && (
+                    <Button
+                      type="primary"
+                      onClick={next}
+                      className="rounded-lg! h-auto! py-3! px-8! bg-secondary! hover:bg-secondary/90! border-none! text-on-secondary! font-inter! text-[14px]! font-medium! shadow-lg! shadow-secondary/20!"
+                    >
+                      Next
+                    </Button>
+                  )}
+                  {safeStep === steps.length - 1 && (
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
+                      className="rounded-lg! h-auto! py-3! px-8! bg-secondary! hover:bg-secondary/90! border-none! text-on-secondary! font-inter! text-[14px]! font-medium! shadow-lg! shadow-secondary/20!"
+                    >
+                      Post Request ✨
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </Form>
+            </Form>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

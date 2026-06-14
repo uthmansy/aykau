@@ -1,7 +1,6 @@
 "use client";
 
 import { Form, Input, Select } from "antd";
-import { useCustomerOnboardingStore } from "@/store/customerOnboarding.store";
 import {
   getStates,
   getLgasByState,
@@ -15,20 +14,25 @@ interface Props {
 
 export default function LocationSelect({ updateData }: Props) {
   const form = Form.useFormInstance();
-
-  // Reactive state watcher
   const stateCode = Form.useWatch("state", form);
-
-  // Get LGAs for selected state
   const lgas = stateCode ? getLgasByState(stateCode) : [];
+
+  const inputClasses =
+    "w-full! bg-surface-container! border-none! rounded-lg! h-12! px-4! font-inter! text-[16px]! focus:ring-1! focus:ring-primary/30!";
+  const selectClasses =
+    "w-full! [&_.ant-select-selector]:bg-surface-container! [&_.ant-select-selector]:border-none! [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-12! [&_.ant-select-selector]:shadow-none! [&_.ant-select-selector]:font-inter! [&_.ant-select-selector]:text-[16px]!";
+  const labelClass =
+    "font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant";
 
   return (
     <>
-      {/* State Select */}
       <Form.Item
         name="state"
-        label="Which state are you based in?"
+        label={
+          <span className={labelClass}>Which state are you based in?</span>
+        }
         rules={[{ required: true, message: "Please select your state" }]}
+        className="mb-4!"
       >
         <Select
           placeholder="Select your state"
@@ -38,7 +42,6 @@ export default function LocationSelect({ updateData }: Props) {
             (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
           }
           onChange={() => {
-            // Clear dependent fields when state changes
             form.setFieldsValue({ lgaId: undefined, city: undefined });
             updateData({
               lgaId: undefined,
@@ -46,17 +49,17 @@ export default function LocationSelect({ updateData }: Props) {
               lgaCoordinates: undefined,
             });
           }}
-          style={{ width: "100%" }}
           optionFilterProp="label"
+          className={selectClasses}
         />
       </Form.Item>
 
-      {/* LGA Select - Only shows when state is selected */}
       {stateCode ? (
         <Form.Item
           name="lgaId"
-          label="Local Government Area"
+          label={<span className={labelClass}>Local Government Area</span>}
           rules={[{ required: true, message: "Please select your LGA" }]}
+          className="mb-4!"
         >
           <Select
             placeholder="Search or select LGA"
@@ -67,49 +70,65 @@ export default function LocationSelect({ updateData }: Props) {
             }
             onChange={(lgaId: number) => {
               const lga = getLgaById(lgaId);
-              if (lga) {
-                // Auto-fill coordinates and LGA name
+              if (lga)
                 updateData({
                   lgaId,
                   lgaName: lga.name,
                   lgaCoordinates: { lat: lga.latitude, lng: lga.longitude },
                 });
-              }
             }}
-            style={{ width: "100%" }}
             optionFilterProp="label"
+            className={selectClasses}
           />
         </Form.Item>
       ) : (
-        <Form.Item label="Local Government Area">
-          <Select disabled placeholder="Select a state first" />
+        <Form.Item
+          label={<span className={labelClass}>Local Government Area</span>}
+          className="mb-4!"
+        >
+          <Select
+            disabled
+            placeholder="Select a state first"
+            className={selectClasses}
+          />
         </Form.Item>
       )}
 
-      {/* City/Area - Optional: can be pre-filled from LGA or manual entry */}
       <Form.Item
         name="city"
-        label="City / Area (optional)"
-        extra="e.g. Ikeja, Lekki, Garki — or leave blank to use LGA name"
+        label={<span className={labelClass}>City / Area (optional)</span>}
+        extra={
+          <span className="font-inter text-[12px] text-outline mt-1 block">
+            e.g. Ikeja, Lekki, Garki — or leave blank to use LGA name
+          </span>
+        }
+        className="mb-4!"
       >
-        <Input placeholder="e.g. Aba, Umuahia" />
+        <Input placeholder="e.g. Aba, Umuahia" className={inputClasses} />
       </Form.Item>
 
-      {/* Post Code */}
       <Form.Item
         name="postCode"
-        label="Post Code"
+        label={<span className={labelClass}>Post Code</span>}
         rules={[{ required: true, message: "Please enter your Post Code" }]}
+        className="mb-4!"
       >
-        <Input placeholder="e.g. 450001" />
+        <Input placeholder="e.g. 450001" className={inputClasses} />
       </Form.Item>
 
-      {/* Address Preference */}
       <Form.Item
         name="addressPreference"
-        label="How do you prefer to share your address?"
+        label={
+          <span className={labelClass}>
+            How do you prefer to share your address?
+          </span>
+        }
         rules={[{ required: true }]}
-        extra="Your exact address is only shared with professionals you accept"
+        extra={
+          <span className="font-inter text-[12px] text-outline mt-1 block">
+            Your exact address is only shared with professionals you accept
+          </span>
+        }
       >
         <Select
           options={[
@@ -126,17 +145,16 @@ export default function LocationSelect({ updateData }: Props) {
               label: "Share landmark only (no exact address)",
             },
           ]}
+          className={selectClasses}
         />
       </Form.Item>
 
-      {/* Optional: Coordinates Preview (for debugging) */}
       {form.getFieldValue("lgaCoordinates") && (
-        <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded mt-2 border border-blue-100">
-          📍 Coordinates: {form.getFieldValue("lgaCoordinates")?.lat.toFixed(4)}
-          , {form.getFieldValue("lgaCoordinates")?.lng.toFixed(4)}
-          <br />
-          <span className="text-gray-400">
-            LGA: {form.getFieldValue("lgaName") || "—"}
+        <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 mt-2 flex items-center gap-2">
+          <span className="text-primary">📍</span>
+          <span className="font-inter text-[12px] text-on-surface-variant">
+            Coordinates: {form.getFieldValue("lgaCoordinates")?.lat.toFixed(4)},{" "}
+            {form.getFieldValue("lgaCoordinates")?.lng.toFixed(4)}
           </span>
         </div>
       )}

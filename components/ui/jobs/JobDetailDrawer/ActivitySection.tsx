@@ -1,5 +1,5 @@
-// components/jobs/ActivitySection.tsx
-import { Timeline, Tag } from "antd";
+"use client";
+
 import {
   EyeOutlined,
   MessageOutlined,
@@ -19,89 +19,101 @@ export default function ActivitySection({ job }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    <div className="space-y-6">
+      <h3 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
         Job Activity
       </h3>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl p-4 text-center border border-gray-200 hover:border-gray-300 transition-colors">
-          <EyeOutlined className="text-gray-400 text-xl mb-2" />
-          <div className="text-2xl font-bold text-gray-900">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-surface-container-lowest rounded-2xl p-5 text-center border border-outline-variant/20">
+          <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center mx-auto mb-3">
+            <EyeOutlined className="text-primary text-[18px]" />
+          </div>
+          <div className="font-manrope text-[24px] font-semibold text-primary">
             {activity.viewed_count}
           </div>
-          <div className="text-xs text-gray-500 mt-1">Views</div>
+          <div className="font-inter text-[12px] text-on-surface-variant mt-1">
+            Views
+          </div>
         </div>
-        <div className="bg-white rounded-xl p-4 text-center border border-gray-200 hover:border-gray-300 transition-colors">
-          <MessageOutlined className="text-gray-400 text-xl mb-2" />
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="bg-surface-container-lowest rounded-2xl p-5 text-center border border-outline-variant/20">
+          <div className="w-10 h-10 rounded-lg bg-secondary/5 flex items-center justify-center mx-auto mb-3">
+            <MessageOutlined className="text-secondary text-[18px]" />
+          </div>
+          <div className="font-manrope text-[24px] font-semibold text-primary">
             {activity.quote_count}
           </div>
-          <div className="text-xs text-gray-500 mt-1">Quotes</div>
+          <div className="font-inter text-[12px] text-on-surface-variant mt-1">
+            Quotes
+          </div>
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+      <div className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/20">
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-4">
           Recent Activity
         </span>
-        <Timeline
-          className="mt-4"
-          mode="left"
-          items={[
-            {
-              content: (
-                <div className="text-sm">
-                  <strong className="text-gray-900 font-medium">
-                    Job Posted
-                  </strong>
-                  <p className="text-gray-500 text-xs mt-0.5">
-                    {new Date(job.created_at!).toLocaleDateString("en-NG", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+        <div className="space-y-4">
+          <div className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-success-emerald/10 flex items-center justify-center flex-none">
+                <CheckCircleFilled className="text-success-emerald text-[14px]" />
+              </div>
+              <div className="w-px h-full bg-outline-variant/30 mt-2" />
+            </div>
+            <div className="pb-4">
+              <p className="font-inter text-[14px] font-medium text-on-surface">
+                Job Posted
+              </p>
+              <p className="font-inter text-[12px] text-on-surface-variant mt-0.5">
+                {new Date(job.created_at!).toLocaleDateString("en-NG", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          </div>
+          {(job.quote_count ?? 0) > 0 && (
+            <div className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-none">
+                  <MessageOutlined className="text-primary text-[14px]" />
                 </div>
-              ),
-              icon: <CheckCircleFilled style={{ color: "#10b981" }} />,
-            },
-            {
-              content: (
-                <div className="text-sm">
-                  <strong className="text-gray-900 font-medium">
-                    First Quote Received
-                  </strong>
-                  <p className="text-gray-500 text-xs mt-0.5">2 hours ago</p>
-                </div>
-              ),
-              icon: <MessageOutlined style={{ color: "#6b7280" }} />,
-            },
-          ]}
-        />
+              </div>
+              <div>
+                <p className="font-inter text-[14px] font-medium text-on-surface">
+                  First Quote Received
+                </p>
+                <p className="font-inter text-[12px] text-on-surface-variant mt-0.5">
+                  Recently
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Expires */}
       {job.expires_at && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-          <ClockCircleOutlined className="text-amber-500 mt-0.5 text-lg" />
+        <div className="bg-warning/5 border border-warning/20 rounded-2xl p-5 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center flex-none">
+            <ClockCircleOutlined className="text-warning text-[18px]" />
+          </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-amber-900 text-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-inter text-[14px] font-semibold text-warning">
                 Expires in
               </span>
-              <Tag color="warning" className="rounded-full border-0 text-xs">
+              <span className="px-2 py-0.5 rounded-full bg-warning/10 text-warning font-inter text-[10px] font-bold uppercase tracking-wider">
                 {Math.ceil(
                   (new Date(job.expires_at).getTime() - Date.now()) /
                     (1000 * 60 * 60 * 24)
                 )}{" "}
                 days
-              </Tag>
+              </span>
             </div>
-            <p className="text-amber-700 text-xs mt-1">
+            <p className="font-inter text-[12px] text-on-surface-variant">
               {new Date(job.expires_at).toLocaleDateString("en-NG", {
                 weekday: "long",
                 month: "short",

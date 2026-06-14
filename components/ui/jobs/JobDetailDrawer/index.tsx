@@ -1,4 +1,3 @@
-// components/jobs/JobDetailDrawer.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,15 +6,15 @@ import { JobListing } from "@/lib/jobs/types";
 import { supabase } from "@/services/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
-import useJobCreditCost from "@/hooks/useJobCreditCost"; // 🟢 Import hook
+import useJobCreditCost from "@/hooks/useJobCreditCost";
 
 import DrawerHeader from "./DrawerHeader";
 import JobContentSection from "./JobContentSection";
 import ClientSection from "./ClientSection";
 import ActivitySection from "./ActivitySection";
 import DrawerFooter from "./DrawerFooter";
-import UnlockConsentModal from "./UnlockConsentModal";
 import BuyCreditsModal from "../../wallet/BuyCreditsModal";
+import UnlockConsentModal from "./UnlockConsentModal";
 
 interface Props {
   job: JobListing | null;
@@ -44,19 +43,15 @@ export default function JobDetailDrawer({
   const isArtisanViewer = userRole === "artisan" && !isCustomer;
 
   const router = useRouter();
-  const creditCost = useJobCreditCost(job); // 🟢 Use hook
+  const creditCost = useJobCreditCost(job);
 
   useEffect(() => {
-    if (open && job?.id && userId && isArtisanViewer) {
-      checkUnlockStatus();
-    } else if (isCustomer) {
-      setIsUnlocked(true);
-    }
+    if (open && job?.id && userId && isArtisanViewer) checkUnlockStatus();
+    else if (isCustomer) setIsUnlocked(true);
   }, [open, job?.id, userId, isArtisanViewer, isCustomer]);
 
   const checkUnlockStatus = async () => {
     if (!job?.id || !userId) return;
-
     try {
       const { data: unlockData } = await supabase
         .from("unlocked_jobs")
@@ -65,63 +60,43 @@ export default function JobDetailDrawer({
         .eq("artisan_id", userId)
         .eq("is_refunded", false)
         .maybeSingle();
-
       setIsUnlocked(!!unlockData);
-
       const { data: walletData } = await supabase
         .from("wallets")
         .select("credit_balance")
         .eq("user_id", userId)
         .single();
-
       setCreditBalance(Number(walletData?.credit_balance || 0));
-    } catch (error) {
-      console.error("Error checking unlock status:", error);
-    }
+    } catch (error) {}
   };
 
   const handleUnlockClick = () => {
-    if (creditBalance >= creditCost) {
-      setShowConsentModal(true);
-    } else {
-      setShowBuyCreditsModal(true);
-    }
+    if (creditBalance >= creditCost) setShowConsentModal(true);
+    else setShowBuyCreditsModal(true);
   };
 
   const confirmUnlock = async () => {
     if (!job?.id) return;
-
     setLoadingUnlock(true);
     try {
       const { data, error } = await supabase.rpc("unlock_job", {
         p_job_id: job.id,
       });
-
       if (error) throw error;
-
       if (data?.success) {
         message.success("Job unlocked successfully!");
         setIsUnlocked(true);
         setCreditBalance((prev) => prev - creditCost);
         setShowConsentModal(false);
-
         setTimeout(() => {
           onClose();
           router.push(`/dashboard/jobs/send-quote/${job.id}`);
         }, 1000);
       }
     } catch (error: any) {
-      console.error("Unlock error:", error);
-
-      if (error.message?.includes("insufficient_credits")) {
-        message.error("Insufficient credits. Please buy more credits.");
-      } else if (error.message?.includes("job_not_available")) {
-        message.error("This job is no longer available for quotes.");
-        onClose();
-        window.location.reload();
-      } else {
-        message.error("Failed to unlock job. Please try again.");
-      }
+      if (error.message?.includes("insufficient_credits"))
+        message.error("Insufficient credits.");
+      else message.error("Failed to unlock job.");
     } finally {
       setLoadingUnlock(false);
     }
@@ -137,20 +112,19 @@ export default function JobDetailDrawer({
         width={480}
         closable={false}
         maskClosable={true}
-        className="job-detail-drawer"
         styles={{
-          body: { padding: 0, background: "#fafafa" },
+          body: { padding: 0, background: "var(--surface-container-low)" },
           mask: { background: "rgba(0,0,0,0.4)" },
+          wrapper: { borderRadius: "16px 0 0 16px", overflow: "hidden" },
         }}
       >
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-surface-container-low">
           <DrawerHeader
             job={job}
             onClose={onClose}
             creditBalance={creditBalance}
             showBalance={isArtisanViewer && !isUnlocked}
           />
-
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
             <JobContentSection job={job} />
             <ClientSection
@@ -163,7 +137,6 @@ export default function JobDetailDrawer({
             />
             <ActivitySection job={job} />
           </div>
-
           <DrawerFooter
             job={job}
             isUnlocked={isUnlocked}
@@ -188,9 +161,7 @@ export default function JobDetailDrawer({
         <BuyCreditsModal
           open={showBuyCreditsModal}
           onClose={() => setShowBuyCreditsModal(false)}
-          onSuccess={() => {
-            checkUnlockStatus();
-          }}
+          onSuccess={checkUnlockStatus}
           jobId={job?.id}
         />
       )}

@@ -254,6 +254,12 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                   ₦{Number(contract.escrow_released_amount).toLocaleString()}
                 </span>
               </div>
+              <div className="flex justify-between text-on-surface-variant">
+                <span>Refunded to Customer:</span>
+                <span className="font-medium text-on-surface">
+                  ₦{Number(contract.escrow_refunded_amount).toLocaleString()}
+                </span>
+              </div>
               {Number(contract.escrow_funded_amount) -
                 Number(contract.escrow_released_amount) >
                 0 && (
@@ -263,7 +269,8 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                     ₦
                     {(
                       Number(contract.escrow_funded_amount) -
-                      Number(contract.escrow_released_amount)
+                      Number(contract.escrow_released_amount) -
+                      Number(contract.escrow_refunded_amount)
                     ).toLocaleString()}
                   </span>
                 </div>

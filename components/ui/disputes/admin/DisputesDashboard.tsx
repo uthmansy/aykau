@@ -1,17 +1,12 @@
-// components/ui/disputes/admin/DisputesDashboard.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Table, Tag, Select, Input, Typography, Button } from "antd";
+import { Table, Select, Input, Button } from "antd";
 import { SearchOutlined, EyeOutlined } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
 import dayjs from "dayjs";
 
-const { Title, Text } = Typography;
-
-// 🟢 UPDATED: Allow relations to be either an object or an array of objects
-// This safely handles Supabase's type inference quirks with foreign keys
 interface DisputeRow {
   id: string;
   status: string;
@@ -39,15 +34,7 @@ export default function DisputesDashboard() {
       let query = supabase
         .from("disputes")
         .select(
-          `
-          id,
-          status,
-          amount_disputed,
-          created_at,
-          job:job_requests(title),
-          raiser:raised_by(full_name),
-          against_user:against(full_name)
-        `
+          `id, status, amount_disputed, created_at, job:job_requests(title), raiser:raised_by(full_name), against_user:against(full_name)`
         )
         .order("created_at", { ascending: false });
 
@@ -57,8 +44,6 @@ export default function DisputesDashboard() {
 
       const { data, error } = await query;
       if (error) throw error;
-
-      // Cast to our flexible interface to satisfy TypeScript
       setDisputes((data as DisputeRow[]) || []);
     } catch (error) {
       console.error("Error fetching disputes:", error);
@@ -69,8 +54,6 @@ export default function DisputesDashboard() {
 
   const filteredDisputes = disputes.filter((d) => {
     const searchLower = searchTerm.toLowerCase();
-
-    // Safely extract values whether they are arrays or objects
     const jobTitle = Array.isArray(d.job) ? d.job[0]?.title : d.job?.title;
     const raiserName = Array.isArray(d.raiser)
       ? d.raiser[0]?.full_name
@@ -89,16 +72,28 @@ export default function DisputesDashboard() {
 
   const columns = [
     {
-      title: "Job / Contract",
+      title: (
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+          Job / Contract
+        </span>
+      ),
       dataIndex: "job",
       key: "job",
       render: (job: any) => {
         const title = Array.isArray(job) ? job[0]?.title : job?.title;
-        return <Text strong>{title || "Unknown Job"}</Text>;
+        return (
+          <span className="font-inter text-[14px] font-medium text-on-surface">
+            {title || "Unknown Job"}
+          </span>
+        );
       },
     },
     {
-      title: "Parties",
+      title: (
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+          Parties
+        </span>
+      ),
       key: "parties",
       render: (_: any, record: DisputeRow) => {
         const raiserName = Array.isArray(record.raiser)
@@ -109,55 +104,99 @@ export default function DisputesDashboard() {
           : record.against_user?.full_name;
 
         return (
-          <div className="flex flex-col text-sm gap-1">
-            <Text>
-              <span className="text-gray-500">Raiser:</span>{" "}
+          <div className="flex flex-col font-inter text-[14px] gap-1">
+            <span className="text-on-surface-variant">
+              <span className="text-outline">Raiser:</span>{" "}
               {raiserName || "Unknown"}
-            </Text>
-            <Text>
-              <span className="text-gray-500">Against:</span>{" "}
+            </span>
+            <span className="text-on-surface-variant">
+              <span className="text-outline">Against:</span>{" "}
               {againstName || "Unknown"}
-            </Text>
+            </span>
           </div>
         );
       },
     },
     {
-      title: "Amount",
+      title: (
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+          Amount
+        </span>
+      ),
       dataIndex: "amount_disputed",
       key: "amount_disputed",
       render: (amount: number) => (
-        <Text strong className="text-gray-900">
+        <span className="font-manrope text-[16px] font-semibold text-primary">
           ₦{Number(amount).toLocaleString()}
-        </Text>
+        </span>
       ),
     },
     {
-      title: "Status",
+      title: (
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+          Status
+        </span>
+      ),
       dataIndex: "status",
       key: "status",
       render: (status: string) => {
-        const colorMap: Record<string, string> = {
-          mediation: "orange",
-          under_review: "red",
-          resolved: "green",
-          withdrawn: "default",
+        // ✅ Mapped strictly to DESIGN.md functional colors
+        const statusStyles = {
+          mediation: {
+            bg: "bg-warning/10",
+            text: "text-warning",
+            label: "In Mediation",
+          },
+          under_review: {
+            bg: "bg-error/10",
+            text: "text-error",
+            label: "Under Review",
+          },
+          resolved: {
+            bg: "bg-success-emerald/10",
+            text: "text-success-emerald",
+            label: "Resolved",
+          },
+          withdrawn: {
+            bg: "bg-on-surface-variant/10",
+            text: "text-on-surface-variant",
+            label: "Withdrawn",
+          },
+        }[status] || {
+          bg: "bg-on-surface-variant/10",
+          text: "text-on-surface-variant",
+          label: status,
         };
+
         return (
-          <Tag color={colorMap[status] || "default"}>
-            {status.replace("_", " ").toUpperCase()}
-          </Tag>
+          <span
+            className={`px-2.5 py-1 rounded-full font-inter text-[10px] font-bold uppercase tracking-wider ${statusStyles.bg} ${statusStyles.text}`}
+          >
+            {statusStyles.label}
+          </span>
         );
       },
     },
     {
-      title: "Date Raised",
+      title: (
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+          Date Raised
+        </span>
+      ),
       dataIndex: "created_at",
       key: "created_at",
-      render: (date: string) => dayjs(date).format("MMM D, YYYY"),
+      render: (date: string) => (
+        <span className="font-inter text-[14px] text-on-surface-variant">
+          {dayjs(date).format("MMM D, YYYY")}
+        </span>
+      ),
     },
     {
-      title: "Action",
+      title: (
+        <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+          Action
+        </span>
+      ),
       key: "action",
       render: (_: any, record: DisputeRow) => (
         <Button
@@ -165,7 +204,8 @@ export default function DisputesDashboard() {
           size="small"
           icon={<EyeOutlined />}
           onClick={() => router.push(`/admin/disputes/${record.id}`)}
-          className="!rounded-lg"
+          // ✅ Navy (Primary) fill for admin actions
+          className="rounded-lg! h-auto! py-1.5! px-4! bg-primary! hover:bg-primary/90! border-none! font-inter! text-[12px]! font-medium!"
         >
           Review
         </Button>
@@ -174,33 +214,33 @@ export default function DisputesDashboard() {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Title level={3} className="!mb-1">
-            Dispute Resolution
-          </Title>
-          <Text type="secondary">
-            Review and resolve escalated contract disputes
-          </Text>
-        </div>
+    <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="font-manrope text-[32px] font-semibold text-primary leading-tight">
+          Dispute Resolution
+        </h1>
+        <p className="font-inter text-[16px] text-on-surface-variant mt-2">
+          Review and resolve escalated contract disputes
+        </p>
       </div>
 
-      <Card className="!rounded-xl !shadow-sm">
+      {/* Main Dashboard Card */}
+      <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-6 space-y-6">
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
           <Input
             placeholder="Search by job title, user name, or dispute ID..."
-            prefix={<SearchOutlined className="text-gray-400" />}
+            prefix={<SearchOutlined className="text-outline" />}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="md:w-96 !rounded-lg"
+            className="md:w-96! bg-surface-container! border-none! rounded-lg! h-10! px-4! font-inter! text-[14px]! focus:ring-1! focus:ring-primary/30!"
             allowClear
           />
           <Select
             value={filterStatus}
             onChange={setFilterStatus}
-            className="md:w-48"
+            className="md:w-48! [&_.ant-select-selector]:bg-surface-container! [&_.ant-select-selector]:border-none! [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:font-inter! [&_.ant-select-selector]:text-[14px]!"
             options={[
               { value: "all", label: "All Statuses" },
               { value: "mediation", label: "In Mediation (48h)" },
@@ -218,9 +258,8 @@ export default function DisputesDashboard() {
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: true }}
-          className="!text-sm"
         />
-      </Card>
+      </div>
     </div>
   );
 }

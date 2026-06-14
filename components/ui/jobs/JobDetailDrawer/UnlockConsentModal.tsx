@@ -1,9 +1,9 @@
-// components/ui/jobs/JobDetailDrawer/UnlockConsentModal.tsx
 "use client";
 
-import { Modal, Button, Divider } from "antd";
+import { Modal, Button } from "antd";
 import { JobListing } from "@/lib/jobs/types";
 import useJobCreditCost from "@/hooks/useJobCreditCost";
+import { CheckCircleFilled, LockOutlined } from "@ant-design/icons";
 
 interface Props {
   open: boolean;
@@ -29,88 +29,90 @@ export default function UnlockConsentModal({
       open={open}
       onCancel={onClose}
       footer={null}
-      width={480}
+      width={520}
       centered
-      className="unlock-consent-modal"
-      // Removed invalid 'content' property.
-      // Use bodyStyle if custom styling for the content area is needed.
-      bodyStyle={{ padding: 0 }}
+      styles={{
+        body: {
+          borderRadius: "16px",
+          padding: "32px",
+          backgroundColor: "var(--surface-container-lowest)",
+          border: "1px solid var(--outline-variant)",
+        },
+      }}
     >
-      <div className="py-6 space-y-5">
-        {/* Header */}
-        <div>
-          <h3 className="text-xl font-bold text-gray-900 mb-1">
-            Confirm Unlock
-          </h3>
-          <p className="text-sm text-gray-500">
-            Review the details before proceeding
-          </p>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center">
+            <LockOutlined className="text-primary text-xl" />
+          </div>
+          <div>
+            <h3 className="font-manrope text-[24px] font-semibold text-primary">
+              Confirm Unlock
+            </h3>
+            <p className="font-inter text-[14px] text-on-surface-variant">
+              Review the details before proceeding
+            </p>
+          </div>
         </div>
 
-        {/* Job Info Card */}
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-          <p className="font-semibold text-gray-900 mb-1">
+        <div className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
+          <p className="font-inter text-[16px] font-medium text-on-surface mb-1 truncate">
             {job.title || job.subcategory}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="font-inter text-[14px] text-on-surface-variant">
             Unlock cost:{" "}
-            <strong className="text-gray-900">{creditCost} credits</strong>
+            <strong className="text-primary">{creditCost} credits</strong>
           </p>
         </div>
 
-        {/* Balance Breakdown */}
         <div className="space-y-3">
-          <div className="flex justify-between items-center text-sm py-2 border-b border-gray-100">
-            <span className="text-gray-600">Current Balance:</span>
-            <strong className="text-gray-900">{creditBalance} credits</strong>
+          <div className="flex justify-between items-center font-inter text-[14px] py-3 border-b border-outline-variant/30">
+            <span className="text-on-surface-variant">Current Balance:</span>
+            <strong className="text-on-surface">{creditBalance} credits</strong>
           </div>
-          <div className="flex justify-between items-center text-sm py-2 border-b border-gray-100">
-            <span className="text-gray-600">Unlock Cost:</span>
-            <strong className="text-gray-900">-{creditCost} credits</strong>
+          <div className="flex justify-between items-center font-inter text-[14px] py-3 border-b border-outline-variant/30">
+            <span className="text-on-surface-variant">Unlock Cost:</span>
+            <strong className="text-on-surface">-{creditCost} credits</strong>
           </div>
-          <div className="flex justify-between items-center text-sm py-2 bg-green-50 rounded-lg px-3 border border-green-100">
-            <span className="text-gray-700 font-medium">New Balance:</span>
-            <strong className="text-green-700 text-base">
+          <div className="flex justify-between items-center font-inter text-[14px] py-4 bg-success-emerald/5 rounded-2xl px-5 border border-success-emerald/20">
+            <span className="text-on-surface font-medium">New Balance:</span>
+            <strong className="text-success-emerald text-[16px]">
               {creditBalance - creditCost} credits
             </strong>
           </div>
         </div>
 
-        <Divider className="!my-4" />
-
-        {/* Benefits */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <p className="text-blue-900 text-sm font-medium mb-2">
+        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5">
+          <p className="font-inter text-[14px] font-semibold text-primary mb-3">
             What you get:
           </p>
-          <ul className="text-blue-800 text-xs space-y-1.5">
-            <li className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">✓</span>
-              <span>View client contact details (phone & email)</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">✓</span>
-              <span>Access to send a quote for this job</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">✓</span>
-              <span>One-time payment — no recurring charges</span>
-            </li>
+          <ul className="space-y-2">
+            {[
+              "View client contact details (phone & email)",
+              "Access to send a quote for this job",
+              "One-time payment — no recurring charges",
+            ].map((benefit, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 font-inter text-[14px] text-on-surface-variant"
+              >
+                <CheckCircleFilled className="text-success-emerald mt-0.5 text-[14px]" />{" "}
+                <span>{benefit}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Disclaimer */}
-        <p className="text-gray-400 text-xs text-center">
+        <p className="font-inter text-[12px] text-outline text-center">
           Credits are non-refundable unless the client cancels this job.
         </p>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-4 pt-2">
           <Button
             block
             size="large"
             onClick={onClose}
-            className="h-11 rounded-lg font-medium"
+            className="rounded-lg! h-auto! py-3! border-outline-variant! text-on-surface-variant! hover:border-primary! hover:text-primary! bg-transparent! font-inter! text-[14px]! font-medium!"
           >
             Cancel
           </Button>
@@ -120,7 +122,7 @@ export default function UnlockConsentModal({
             size="large"
             loading={loading}
             onClick={onConfirm}
-            className="bg-gray-900 hover:bg-gray-800 border-0 h-11 rounded-lg font-medium"
+            className="rounded-lg! h-auto! py-3! bg-secondary! hover:bg-secondary/90! border-none! font-inter! text-[14px]! font-medium! shadow-lg! shadow-secondary/20!"
           >
             Confirm & Unlock
           </Button>

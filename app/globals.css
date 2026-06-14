@@ -78,6 +78,7 @@
 
   /* Primary (Navy) */
   --primary: #15196c;
+  --on-primary: #ffffff;
   --primary-container: #2d3282;
   --on-primary-container: #999ff5;
   --primary-fixed: #e0e0ff;

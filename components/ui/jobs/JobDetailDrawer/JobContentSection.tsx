@@ -1,4 +1,5 @@
-// components/jobs/JobContentSection.tsx
+"use client";
+
 import { Image } from "antd";
 import { JobListing } from "@/lib/jobs/types";
 
@@ -9,78 +10,73 @@ interface Props {
 export default function JobContentSection({ job }: Props) {
   return (
     <div className="space-y-6">
-      {/* Description */}
       <div>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h3 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-3">
           Job Description
         </h3>
-        <div className="bg-white rounded-xl p-5 border border-gray-200">
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
+        <div className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/20">
+          <p className="font-inter text-[16px] text-on-surface-variant leading-relaxed whitespace-pre-wrap">
             {job.description}
           </p>
         </div>
       </div>
 
-      {/* Photos */}
       {job.photo_urls?.length && job.photo_urls.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <h3 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-3">
             Attachments
           </h3>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             {job.photo_urls.slice(0, 6).map((url, idx) => (
               <Image
                 key={idx}
                 src={url}
                 alt={`Attachment ${idx + 1}`}
-                className="aspect-square object-cover rounded-lg border border-gray-200 hover:scale-105 transition-transform cursor-pointer"
-                preview={{
-                  mask: false,
-                }}
+                className="aspect-square object-cover rounded-lg border border-outline-variant/20 hover:scale-105 transition-transform cursor-pointer"
+                preview={{ mask: false }}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Additional Details */}
       {(job.access_notes || job.frequency || job.custom_details) && (
-        <div className="bg-gray-50 rounded-xl p-5 space-y-4 border border-gray-100">
+        <div className="bg-surface-container rounded-2xl p-5 space-y-4 border border-outline-variant/20">
           {job.access_notes && (
             <div>
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-1.5">
                 Access Notes
               </span>
-              <p className="text-sm text-gray-700 mt-1.5 leading-relaxed">
+              <p className="font-inter text-[14px] text-on-surface leading-relaxed">
                 {job.access_notes}
               </p>
             </div>
           )}
           {job.frequency && (
             <div>
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-1.5">
                 Frequency
               </span>
-              <p className="text-sm text-gray-700 mt-1.5 capitalize">
+              <p className="font-inter text-[14px] text-on-surface capitalize">
                 {job.frequency}
               </p>
             </div>
           )}
           {job.custom_details && Object.keys(job.custom_details).length > 0 && (
             <div>
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-2">
                 Additional Details
               </span>
-              <div className="mt-2 space-y-2">
+              <div className="space-y-0">
                 {Object.entries(job.custom_details).map(([key, value]) => (
                   <div
                     key={key}
-                    className="flex justify-between text-sm py-1.5 border-b border-gray-200 last:border-0"
+                    className="flex justify-between font-inter text-[14px] py-2 border-b border-outline-variant/20 last:border-0"
                   >
-                    <span className="text-gray-500 capitalize">
+                    <span className="text-on-surface-variant capitalize">
                       {key.replace(/_/g, " ")}:
                     </span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-on-surface font-medium text-right max-w-[60%]">
                       {String(value)}
                     </span>
                   </div>

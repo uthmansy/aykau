@@ -1,4 +1,3 @@
-// components/auth/AdminGuard.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,16 +15,14 @@ export default function AdminGuard({
 
   useEffect(() => {
     const checkAdmin = async () => {
-      // 1. Check if user is logged in
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        router.push("/login"); // Redirect to your login page
+        router.push("/login");
         return;
       }
 
-      // 2. Check if user has 'admin' role
       const { data: profile, error } = await supabase
         .from("profiles")
         .select("role")
@@ -33,32 +30,30 @@ export default function AdminGuard({
         .single();
 
       if (error || profile?.role !== "admin") {
-        // Not an admin, redirect to regular dashboard or home
         router.push("/dashboard");
         return;
       }
 
-      // Is an admin
       setIsAuthorized(true);
     };
 
     checkAdmin();
   }, [router]);
 
-  // Show loading spinner while checking
   if (isAuthorized === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Spin size="large" tip="Verifying admin access..." />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-surface gap-4">
+        <Spin size="large" />
+        <p className="font-inter text-[14px] text-on-surface-variant">
+          Verifying admin access...
+        </p>
       </div>
     );
   }
 
-  // If not authorized, render nothing (the useEffect already redirected)
   if (!isAuthorized) {
     return null;
   }
 
-  // Render the protected admin content
   return <>{children}</>;
 }
