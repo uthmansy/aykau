@@ -1,8 +1,7 @@
-// components/jobs/JobPagination.tsx
 "use client";
 
-import { Pagination } from "antd";
 import { useSearchParams, useRouter } from "next/navigation";
+import { DownOutlined } from "@ant-design/icons";
 
 export default function JobPagination({
   currentPage,
@@ -14,17 +13,18 @@ export default function JobPagination({
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  if (currentPage >= totalPages) return null;
+
   return (
-    <Pagination
-      current={currentPage}
-      total={totalPages * 12} // Assuming 12 items per page
-      pageSize={12}
-      onChange={(newPage) => {
+    <button
+      onClick={() => {
         const params = new URLSearchParams(searchParams.toString());
-        params.set("page", newPage.toString());
+        params.set("page", (currentPage + 1).toString());
         router.push(`/dashboard/jobs?${params.toString()}`);
       }}
-      showSizeChanger={false}
-    />
+      className="flex items-center gap-2 px-8 py-3 rounded-full bg-surface-container-high text-primary font-inter text-[14px] font-medium hover:bg-primary/10 transition-all"
+    >
+      <DownOutlined /> Load More Listings
+    </button>
   );
 }

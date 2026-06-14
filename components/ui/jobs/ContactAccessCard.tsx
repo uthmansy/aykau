@@ -1,5 +1,6 @@
-// components/jobs/ContactAccessCard.tsx
-import { Card, Typography, Avatar, Button, Tooltip } from "antd";
+"use client";
+
+import { Avatar, Button, Tooltip } from "antd";
 import {
   LockOutlined,
   UnlockOutlined,
@@ -9,8 +10,6 @@ import {
   CheckCircleOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
-
-const { Text } = Typography;
 
 interface Props {
   isUnlocked: boolean;
@@ -33,42 +32,50 @@ export default function ContactAccessCard({
 }: Props) {
   if (isUnlocked) {
     return (
-      <Card className="!rounded-2xl !border-gray-200 !shadow-sm overflow-hidden">
-        <div className="flex items-center gap-2 mb-4">
-          <UnlockOutlined className="text-green-600 text-lg" />
-          <Text strong className="!text-gray-900 !text-base">
+      <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-6 md:p-8 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-success-emerald/10 flex items-center justify-center">
+            <UnlockOutlined className="text-success-emerald text-[18px]" />
+          </div>
+          <h3 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-success-emerald">
             Customer Contact & Quote Access
-          </Text>
+          </h3>
         </div>
 
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
-            <div className="flex items-center gap-4 mb-4">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="bg-surface-container rounded-2xl p-6 border border-outline-variant/20">
+            <div className="flex items-center gap-4 mb-6">
               <Avatar
-                size={56}
+                size={64}
                 src={customer?.avatar_url}
                 icon={<UserOutlined />}
-                className="!bg-gray-200 !text-gray-600 !border !border-gray-300"
+                className="bg-surface-container-lowest! text-on-surface-variant! ring-2! ring-outline-variant/30!"
               />
-              <div className="flex-1">
-                <Text strong className="!text-gray-900 !text-base block">
+              <div>
+                <p className="font-manrope text-[20px] font-semibold text-primary">
                   {customer?.full_name || customer?.username || "Customer"}
-                </Text>
-                <Text className="!text-gray-500 !text-xs">Posted this job</Text>
+                </p>
+                <p className="font-inter text-[14px] text-on-surface-variant">
+                  Posted this job
+                </p>
               </div>
             </div>
 
-            <div className="space-y-2 pt-3 border-t border-gray-200">
+            <div className="space-y-3 pt-6 border-t border-outline-variant/30">
               {customer?.phone && (
-                <div className="flex items-center gap-3 text-sm">
-                  <PhoneOutlined className="text-gray-400" />
-                  <Text className="!text-gray-700">{customer.phone}</Text>
+                <div className="flex items-center gap-3">
+                  <PhoneOutlined className="text-outline text-[16px]" />
+                  <span className="font-inter text-[16px] text-on-surface">
+                    {customer.phone}
+                  </span>
                 </div>
               )}
               {customer?.email && (
-                <div className="flex items-center gap-3 text-sm">
-                  <MailOutlined className="text-gray-400" />
-                  <Text className="!text-gray-700">{customer.email}</Text>
+                <div className="flex items-center gap-3">
+                  <MailOutlined className="text-outline text-[16px]" />
+                  <span className="font-inter text-[16px] text-on-surface">
+                    {customer.email}
+                  </span>
                 </div>
               )}
             </div>
@@ -80,53 +87,55 @@ export default function ContactAccessCard({
             block
             icon={<CheckCircleOutlined />}
             onClick={onSendQuote}
-            className="!bg-gray-900 hover:!bg-gray-800 !border-0 !h-12 !rounded-xl !font-medium !text-base"
+            className="rounded-lg! h-auto! py-3.5! bg-secondary! hover:bg-secondary/90! border-none! font-inter! text-[16px]! font-medium! shadow-lg! shadow-secondary/20!"
           >
             Send Quote Now
           </Button>
         </div>
-      </Card>
+      </div>
     );
   }
 
   // Locked State
   return (
-    <Card className="!rounded-2xl !border-gray-200 !shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 mb-4">
-        <LockOutlined className="text-gray-400 text-lg" />
-        <Text strong className="!text-gray-900 !text-base">
+    <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-6 md:p-8 overflow-hidden relative">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-lg bg-on-surface-variant/10 flex items-center justify-center">
+          <LockOutlined className="text-on-surface-variant text-[18px]" />
+        </div>
+        <h3 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
           Unlock to View Contact & Send Quote
-        </Text>
+        </h3>
       </div>
 
       <div className="relative">
         {/* Blurred Dummy Content */}
-        <div className="space-y-3 opacity-30 pointer-events-none select-none filter blur-sm">
-          <div className="h-20 bg-gray-200 rounded-lg" />
-          <div className="h-12 bg-gray-900 rounded-lg w-full" />
+        <div className="space-y-4 opacity-20 pointer-events-none select-none filter blur-sm">
+          <div className="h-24 bg-surface-container rounded-2xl" />
+          <div className="h-14 bg-surface-container rounded-lg w-full" />
         </div>
 
-        {/* Overlay Prompt */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[2px] rounded-xl p-6">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <LockOutlined className="text-3xl text-gray-500" />
+        {/* ✅ Level 2 Glassmorphic Overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-glass backdrop-blur-glass border border-white/20 rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-5">
+            <LockOutlined className="text-3xl text-primary" />
           </div>
-          <Text strong className="!text-gray-900 !text-lg mb-1 text-center">
+          <h4 className="font-manrope text-[24px] font-semibold text-primary mb-2">
             Unlock for {creditCost} Credits
-          </Text>
-          <Text className="!text-gray-500 !text-sm mb-5 text-center max-w-sm">
+          </h4>
+          <p className="font-inter text-[16px] text-on-surface-variant mb-6 max-w-sm">
             View customer contact details and gain access to send a quote for
             this job.
-          </Text>
+          </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-md">
             <Tooltip title="Your current credit balance">
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                <WalletOutlined className="text-gray-500" />
-                <Text className="!text-gray-700 !text-sm">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-container rounded-lg border border-outline-variant/30">
+                <WalletOutlined className="text-on-surface-variant" />
+                <span className="font-inter text-[14px] text-on-surface-variant">
                   Balance:{" "}
-                  <strong className="!text-gray-900">{creditBalance}</strong>
-                </Text>
+                  <strong className="text-on-surface">{creditBalance}</strong>
+                </span>
               </div>
             </Tooltip>
             <Button
@@ -135,13 +144,13 @@ export default function ContactAccessCard({
               icon={<UnlockOutlined />}
               onClick={onUnlock}
               loading={loading}
-              className="!bg-gray-900 hover:!bg-gray-800 !border-0 !rounded-lg !h-11 !font-medium flex-1 sm:flex-none"
+              className="rounded-lg! h-auto! py-3! bg-secondary! hover:bg-secondary/90! border-none! font-inter! text-[14px]! font-medium! flex-1! sm:flex-none!"
             >
               Unlock Now
             </Button>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

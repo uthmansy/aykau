@@ -32,6 +32,9 @@ export default function UnlockConsentModal({
       width={480}
       centered
       className="unlock-consent-modal"
+      // Removed invalid 'content' property.
+      // Use bodyStyle if custom styling for the content area is needed.
+      bodyStyle={{ padding: 0 }}
     >
       <div className="py-6 space-y-5">
         {/* Header */}

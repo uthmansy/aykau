@@ -1,25 +1,13 @@
-// components/ui/chat/ChatSidebar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  Typography,
-  Tag,
-  Button,
-  Divider,
-  App,
-  Skeleton,
-  Alert,
-  Modal,
-} from "antd";
+import { Button, App, Skeleton } from "antd";
 import {
   WalletOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   UndoOutlined,
   DollarOutlined,
-  SendOutlined,
   FlagOutlined,
   RiseOutlined,
   ClockCircleOutlined,
@@ -29,8 +17,6 @@ import { supabase } from "@/services/supabase/client";
 import RequestPaymentModal from "./RequestPaymentModal";
 import RaiseDisputeModal from "../disputes/RaiseDisputeModal";
 import DisputeBanner from "../disputes/DisputeBanner";
-
-const { Title, Text } = Typography;
 
 interface Props {
   conversation: any;
@@ -43,10 +29,10 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
   const [quote, setQuote] = useState<any>(null);
   const [contract, setContract] = useState<any>(null);
   const [pendingRequest, setPendingRequest] = useState<any>(null);
-  const [dispute, setDispute] = useState<any>(null); // 🟢 NEW
+  const [dispute, setDispute] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [isRaiseDisputeOpen, setIsRaiseDisputeOpen] = useState(false); // 🟢 NEW
+  const [isRaiseDisputeOpen, setIsRaiseDisputeOpen] = useState(false);
 
   const isCustomer = conversation.customer_id === currentUserId;
   const isArtisan = conversation.artisan_id === currentUserId;
@@ -65,7 +51,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
         .eq("id", conversation.job_id)
         .single();
       setJob(jobData);
-
       const { data: quoteData } = await supabase
         .from("job_quotes")
         .select("*")
@@ -73,7 +58,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
         .eq("artisan_id", conversation.artisan_id)
         .maybeSingle();
       setQuote(quoteData);
-
       if (quoteData?.status === "accepted") {
         const { data: contractData } = await supabase
           .from("contracts")
@@ -82,9 +66,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
           .eq("artisan_id", conversation.artisan_id)
           .single();
         setContract(contractData);
-
         if (contractData) {
-          // Fetch pending payment request
           const { data: requestData } = await supabase
             .from("payment_requests")
             .select("*")
@@ -93,8 +75,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
             .order("created_at", { ascending: false })
             .maybeSingle();
           setPendingRequest(requestData);
-
-          // 🟢 Fetch active dispute
           const { data: disputeData } = await supabase
             .from("disputes")
             .select("*")
@@ -120,7 +100,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
   ) => {
     if (!quote) return;
     let error: any = null;
-
     if (newStatus === "accepted") {
       const { error: rpcError } = await supabase.rpc(
         "accept_quote_and_create_contract",
@@ -134,7 +113,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
         .eq("id", quote.id);
       error = updateError;
     }
-
     if (error) {
       if (error.message.includes("job_already_filled"))
         message.warning("This job is already assigned.");
@@ -152,34 +130,22 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
         p_request_id: pendingRequest.id,
         p_new_status: action,
       });
-
       if (error) throw error;
-
       message.success(`Request ${action} successfully!`);
       fetchData();
     } catch (error: any) {
-      console.error("Request action error:", error);
-      if (error.message.includes("insufficient_funds")) {
-        message.error(
-          "Insufficient wallet balance. Please add funds to your wallet first."
-        );
-      } else if (error.message.includes("insufficient_escrow")) {
-        message.error("Not enough funds currently held in escrow.");
-      } else {
-        message.error("Failed to update request.");
-      }
+      if (error.message.includes("insufficient_funds"))
+        message.error("Insufficient wallet balance.");
+      else if (error.message.includes("insufficient_escrow"))
+        message.error("Not enough funds in escrow.");
+      else message.error("Failed to update request.");
     }
   };
 
   const handleMarkComplete = () => {
     if (!contract) return;
-
-    // 🟢 Block completion if dispute is active
-    if (dispute) {
-      message.warning("Cannot complete job while dispute is active.");
-      return;
-    }
-
+    if (dispute)
+      return message.warning("Cannot complete job while dispute is active.");
     modal.confirm({
       title: "Mark Job as Complete?",
       content:
@@ -193,7 +159,7 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
             p_contract_id: contract.id,
           });
           if (error) throw error;
-          message.success("Job marked complete and funds released!");
+          message.success("Job marked complete!");
           fetchData();
         } catch (error: any) {
           message.error("Failed to complete job.");
@@ -210,111 +176,88 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
     );
   if (!job)
     return (
-      <div className="p-4 text-center text-gray-500 text-sm">
+      <div className="p-4 text-center text-on-surface-variant font-inter text-[14px]">
         No job details found.
       </div>
     );
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4 bg-gray-50/30">
-      {/* 🟢 Dispute Banner - Show at top if active */}
+    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4 bg-surface-container-low">
       {dispute && (
         <DisputeBanner
           dispute={dispute}
           onWithdraw={() => {
-            message.success("Dispute withdrawn successfully!");
+            message.success("Dispute withdrawn!");
             fetchData();
           }}
         />
       )}
 
       {/* 1. Job Details Card */}
-      <Card
-        className="!rounded-xl !shadow-sm !border-gray-200 !bg-white"
-        styles={{ body: { padding: "16px" } }}
-      >
+      <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-5">
         <div className="flex items-center gap-2 mb-3">
-          <RiseOutlined className="text-gray-500" />
-          <Text
-            strong
-            className="text-xs text-gray-500 uppercase tracking-wide"
-          >
+          <RiseOutlined className="text-on-surface-variant" />
+          <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
             Job Details
-          </Text>
+          </span>
         </div>
-        <Title level={5} className="!mb-3 !text-gray-900 !leading-snug">
+        <h3 className="font-manrope text-[16px] font-semibold text-primary mb-3 leading-snug">
           {job.title || job.subcategory}
-        </Title>
-        <div className="space-y-2.5 text-sm">
+        </h3>
+        <div className="space-y-2.5 text-[14px]">
           <div className="flex justify-between items-center">
-            <Text type="secondary" className="!text-xs">
+            <span className="font-inter text-[12px] text-on-surface-variant">
               Status
-            </Text>
-            <Tag
-              color={
-                job.status === "open"
-                  ? "success"
-                  : job.status === "in_progress"
-                    ? "processing"
-                    : "default"
-              }
-              className="!rounded-full !text-[10px] !uppercase !m-0"
+            </span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full font-inter text-[10px] font-bold uppercase tracking-wider
+              ${job.status === "open" ? "bg-success-emerald/10 text-success-emerald" : job.status === "in_progress" ? "bg-primary/10 text-primary" : "bg-on-surface-variant/10 text-on-surface-variant"}`}
             >
               {job.status}
-            </Tag>
+            </span>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* 2. Contract / Quote Card */}
       {quote && (
-        <Card
-          className="!rounded-xl !shadow-sm !border-gray-200 !bg-white"
-          styles={{ body: { padding: "16px" } }}
-        >
+        <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-5">
           <div className="flex items-center gap-2 mb-3">
-            <WalletOutlined className="text-gray-500" />
-            <Text
-              strong
-              className="text-xs text-gray-500 uppercase tracking-wide"
-            >
+            <WalletOutlined className="text-on-surface-variant" />
+            <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
               {quote.status === "accepted"
                 ? "Active Contract"
                 : "Quote Details"}
-            </Text>
+            </span>
           </div>
-
           <div className="mb-1">
-            <Text type="secondary" className="!text-xs">
+            <span className="font-inter text-[12px] text-on-surface-variant block">
               Agreed Price
-            </Text>
-            <Title level={4} className="!mb-0 !text-gray-900 !font-bold">
+            </span>
+            <h4 className="font-manrope text-[24px] font-semibold text-primary mb-0">
               {quote.quoted_price
                 ? `₦${Number(quote.quoted_price).toLocaleString()}`
                 : "Negotiable"}
-            </Title>
+            </h4>
           </div>
-
-          {/* Escrow Stats */}
           {contract && (
-            <div className="mt-3 space-y-2 text-xs">
-              <div className="flex justify-between text-gray-500">
+            <div className="mt-3 space-y-2 font-inter text-[12px]">
+              <div className="flex justify-between text-on-surface-variant">
                 <span>Total Funded:</span>
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-on-surface">
                   ₦{Number(contract.escrow_funded_amount).toLocaleString()}
                 </span>
               </div>
-              <div className="flex justify-between text-gray-500">
+              <div className="flex justify-between text-on-surface-variant">
                 <span>Released to Artisan:</span>
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-on-surface">
                   ₦{Number(contract.escrow_released_amount).toLocaleString()}
                 </span>
               </div>
-
               {Number(contract.escrow_funded_amount) -
                 Number(contract.escrow_released_amount) >
                 0 && (
-                <div className="flex justify-between text-gray-900 bg-gray-100 p-2 rounded-md mt-1 border border-gray-200">
+                <div className="flex justify-between text-on-surface bg-surface-container p-2 rounded-lg mt-1 border border-outline-variant/20 font-inter text-[12px]">
                   <span className="font-semibold">Remaining in Escrow:</span>
                   <span className="font-bold">
                     ₦
@@ -327,11 +270,8 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
               )}
             </div>
           )}
-
-          <Divider className="!my-3 !border-gray-100" />
-
-          <div className="space-y-3">
-            {/* PRE-ACCEPTANCE ACTIONS */}
+          <div className="h-px bg-outline-variant/30 my-4" />
+          <div className="flex flex-col gap-3">
             {quote.status !== "accepted" && (
               <>
                 {isCustomer &&
@@ -343,16 +283,15 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                         type="primary"
                         icon={<CheckCircleOutlined />}
                         onClick={() => handleQuoteStatusUpdate("accepted")}
-                        className="!rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !h-9 !text-sm"
+                        className="!rounded-lg! !h-auto! !py-2.5! !bg-secondary! hover:!bg-secondary/90! !border-none! font-inter! text-[14px]! font-medium!"
                       >
                         Accept Quote
                       </Button>
                       <Button
                         block
-                        danger
                         icon={<CloseCircleOutlined />}
                         onClick={() => handleQuoteStatusUpdate("declined")}
-                        className="!rounded-lg !h-9 !text-sm"
+                        className="!rounded-lg! !h-auto! !py-2.5! !border-outline-variant! !text-on-surface-variant! hover:!border-error! hover:!text-error! bg-transparent! font-inter! text-[14px]! font-medium!"
                       >
                         Decline Quote
                       </Button>
@@ -363,102 +302,89 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                     block
                     icon={<UndoOutlined />}
                     onClick={() => handleQuoteStatusUpdate("withdrawn")}
-                    className="!rounded-lg !border-gray-300 !text-gray-700 hover:!border-gray-500 !h-9 !text-sm"
+                    className="!rounded-lg! !h-auto! !py-2.5! !border-outline-variant! !text-on-surface-variant! hover:!border-primary! hover:!text-primary! bg-transparent! font-inter! text-[14px]! font-medium!"
                   >
                     Withdraw Quote
                   </Button>
                 )}
               </>
             )}
-
-            {/* POST-ACCEPTANCE ACTIONS */}
             {quote.status === "accepted" &&
               contract &&
               contract.status !== "completed" && (
-                <div className="space-y-3">
-                  {/* Request Banner */}
+                <div className="flex flex-col gap-3">
                   {isCustomer && pendingRequest && (
-                    <Alert
-                      message={`Request: ₦${Number(
-                        pendingRequest.amount
-                      ).toLocaleString()}`}
-                      description={pendingRequest.description}
-                      type="warning"
-                      showIcon
-                      icon={<ClockCircleOutlined />}
-                      className="!rounded-lg !border-yellow-200 !bg-yellow-50"
-                      action={
-                        <div className="flex flex-col gap-2 mt-2">
-                          <Button
-                            size="small"
-                            type="primary"
-                            onClick={() => handleRequestAction("approved")}
-                            className="!bg-gray-900 hover:!bg-gray-800 !border-0 !h-8 !text-xs"
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="small"
-                            danger
-                            onClick={() => handleRequestAction("rejected")}
-                            className="!h-8 !text-xs"
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      }
-                    />
+                    <div className="bg-warning/5 border border-warning/20 rounded-2xl p-4">
+                      <p className="font-inter text-[14px] font-semibold text-warning mb-1">
+                        Request: ₦
+                        {Number(pendingRequest.amount).toLocaleString()}
+                      </p>
+                      <p className="font-inter text-[12px] text-on-surface-variant mb-3">
+                        {pendingRequest.description}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => handleRequestAction("approved")}
+                          className="!rounded-lg! !bg-secondary! hover:!bg-secondary/90! !border-none! !h-8! font-inter! text-[12px]! font-medium!"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() => handleRequestAction("rejected")}
+                          className="!rounded-lg! !border-outline-variant! !text-on-surface-variant! hover:!border-error! hover:!text-error! bg-transparent! !h-8! font-inter! text-[12px]! font-medium!"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
                   )}
-
                   {isArtisan && pendingRequest && (
-                    <Alert
-                      message="Request Pending"
-                      description="Waiting for customer approval."
-                      type="info"
-                      showIcon
-                      icon={<ClockCircleOutlined />}
-                      className="!rounded-lg !border-gray-200 !bg-gray-50 !text-gray-600"
-                    />
+                    <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex items-center gap-2">
+                      <ClockCircleOutlined className="text-primary" />
+                      <div>
+                        <p className="font-inter text-[14px] font-semibold text-primary">
+                          Request Pending
+                        </p>
+                        <p className="font-inter text-[12px] text-on-surface-variant">
+                          Waiting for customer approval.
+                        </p>
+                      </div>
+                    </div>
                   )}
-
                   {isArtisan && !pendingRequest && !dispute && (
                     <Button
                       block
                       type="primary"
                       icon={<DollarOutlined />}
                       onClick={() => setIsRequestModalOpen(true)}
-                      className="!rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !h-9 !text-sm"
+                      className="!rounded-lg! !h-auto! !py-2.5! !bg-secondary! hover:!bg-secondary/90! !border-none! font-inter! text-[14px]! font-medium!"
                     >
                       Request Payment
                     </Button>
                   )}
-
-                  {/* Mark Complete Button */}
                   {isCustomer && !dispute && (
                     <Button
                       block
                       icon={<FlagOutlined />}
                       onClick={handleMarkComplete}
-                      className="!rounded-lg !border-gray-300 !text-gray-700 hover:!border-gray-500 !h-9 !text-sm"
+                      className="!rounded-lg! !h-auto! !py-2.5! !border-outline-variant! !text-on-surface-variant! hover:!border-primary! hover:!text-primary! bg-transparent! font-inter! text-[14px]! font-medium!"
                     >
                       Mark Job as Complete
                     </Button>
                   )}
-
-                  {/* 🟢 Raise Dispute Button - Only show if escrow funded and no active dispute */}
                   {contract.escrow_funded_amount > 0 && !dispute && (
                     <Button
                       block
-                      danger
                       icon={<WarningOutlined />}
                       onClick={() => setIsRaiseDisputeOpen(true)}
-                      className="!rounded-lg !h-9 !text-sm"
+                      className="!rounded-lg! !h-auto! !py-2.5! !bg-error! hover:!bg-error/90! !border-none! !text-on-error! font-inter! text-[14px]! font-medium!"
                     >
                       Raise Dispute
                     </Button>
                   )}
-
-                  {/* 🟢 View Dispute Button - Show if dispute exists */}
                   {dispute && (
                     <Button
                       block
@@ -467,30 +393,23 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
                       onClick={() =>
                         (window.location.href = `/dashboard/disputes/${dispute.id}`)
                       }
-                      className="!rounded-lg !bg-orange-600 hover:!bg-orange-700 !border-0 !h-9 !text-sm"
+                      className="!rounded-lg! !h-auto! !py-2.5! !bg-warning! hover:!bg-warning/90! !border-none! !text-on-secondary! font-inter! text-[14px]! font-medium!"
                     >
                       View Dispute Details
                     </Button>
                   )}
                 </div>
               )}
-
-            {/* Completed State */}
             {contract?.status === "completed" && (
               <div className="text-center py-2">
-                <Tag
-                  color="success"
-                  className="!rounded-full !px-3 !py-1 !text-xs"
-                >
+                <span className="px-3 py-1 rounded-full bg-success-emerald/10 text-success-emerald font-inter text-[12px] font-bold uppercase tracking-wider">
                   Job Completed
-                </Tag>
+                </span>
               </div>
             )}
           </div>
-        </Card>
+        </div>
       )}
-
-      {/* Modals */}
       {contract && (
         <RequestPaymentModal
           open={isRequestModalOpen}
@@ -500,8 +419,6 @@ export default function ChatSidebar({ conversation, currentUserId }: Props) {
           onRequestSuccess={fetchData}
         />
       )}
-
-      {/* 🟢 Raise Dispute Modal */}
       {contract && (
         <RaiseDisputeModal
           open={isRaiseDisputeOpen}

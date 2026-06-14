@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, Typography, Divider, Tag, Spin } from "antd";
+import { Spin } from "antd";
 import {
   EnvironmentOutlined,
   WalletOutlined,
   CalendarOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import {
   Category,
@@ -13,32 +14,25 @@ import {
 } from "@/lib/helpers/categories";
 import { JobListing } from "@/lib/jobs/types";
 
-const { Title, Text, Paragraph } = Typography;
-
 interface Props {
   job: JobListing;
 }
 
-function JobDetailSummary({ job }: Props) {
-  // 🟢 Fetch categories from database
+export default function JobDetailSummary({ job }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const load = async () => {
       try {
-        const data = await fetchCategoriesWithSubcategories();
-        setCategories(data);
-      } catch (error) {
-        console.error("Failed to load categories:", error);
+        setCategories(await fetchCategoriesWithSubcategories());
       } finally {
         setLoading(false);
       }
     };
-    loadCategories();
+    load();
   }, []);
 
-  // 🟢 Find category and subcategory from database
   const categoryConfig = categories.find((c) => c.value === job.category);
   const subcategoryConfig = categoryConfig?.subcategories.find(
     (s) => s.value === job.subcategory
@@ -57,85 +51,97 @@ function JobDetailSummary({ job }: Props) {
   if (loading) {
     return (
       <div className="lg:col-span-1">
-        <Card
-          className="sticky rounded-xl shadow-sm border-gray-100"
-          styles={{ body: { padding: "16px" } }}
-        >
-          <div className="flex justify-center py-8">
+        <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-6 sticky top-24">
+          <div className="flex justify-center py-12">
             <Spin />
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="lg:col-span-1">
-      <Card
-        title={<span className="font-semibold text-gray-900">Job Summary</span>}
-        className="sticky rounded-xl shadow-sm border-gray-100"
-        styles={{
-          body: { padding: "16px" },
-          header: { borderBottom: "1px solid #f3f4f6", padding: "16px" },
-        }}
-      >
-        <div className="space-y-4">
-          <div>
-            <Tag color="default" variant="solid" className="mb-2 rounded-full">
-              {categoryConfig?.label || job.category}
-            </Tag>
-            <Title level={5} className="mb-1! text-gray-900!">
-              {subcategoryConfig?.label || job.subcategory}
-            </Title>
-          </div>
-          <Divider className="my-3!" />
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <WalletOutlined className="text-gray-400" />
-              <span>
-                Budget: <strong className="text-gray-900">{budgetLabel}</strong>
-              </span>
+      <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 p-6 sticky top-24 space-y-6">
+        <div>
+          <h3 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4">
+            Job Summary
+          </h3>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center flex-none">
+              <AppstoreOutlined className="text-primary text-[18px]" />
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <EnvironmentOutlined className="text-gray-400" />
-              <span>
-                Location:{" "}
-                <strong className="text-gray-900">
-                  {job.state_code || job.lga_name || "Remote"}
-                </strong>
-              </span>
+            <div>
+              <p className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-1">
+                Category
+              </p>
+              <p className="font-inter text-[16px] font-medium text-on-surface">
+                {categoryConfig?.label || job.category}
+              </p>
             </div>
-            {job.preferred_date && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <CalendarOutlined className="text-gray-400" />
-                <span>
-                  Date:{" "}
-                  <strong className="text-gray-900">
-                    {new Date(job.preferred_date).toLocaleDateString("en-NG")}
-                  </strong>
-                </span>
-              </div>
-            )}
           </div>
-          <Divider className="my-3!" />
-          <div>
-            <Text
-              strong
-              className="block mb-2 text-xs uppercase text-gray-500 tracking-wide"
-            >
-              Description
-            </Text>
-            <Paragraph
-              className="mb-0! text-gray-700 text-sm leading-relaxed"
-              ellipsis={{ rows: 6, expandable: true, symbol: "more" }}
-            >
-              {job.description}
-            </Paragraph>
-          </div>
+          <h2 className="font-manrope text-[20px] font-semibold text-primary leading-tight">
+            {subcategoryConfig?.label || job.subcategory}
+          </h2>
         </div>
-      </Card>
+
+        <div className="h-px bg-outline-variant/30" />
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center flex-none">
+              <WalletOutlined className="text-primary text-[14px]" />
+            </div>
+            <div>
+              <p className="font-inter text-[12px] text-on-surface-variant">
+                Budget
+              </p>
+              <p className="font-inter text-[14px] font-semibold text-on-surface">
+                {budgetLabel}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center flex-none">
+              <EnvironmentOutlined className="text-primary text-[14px]" />
+            </div>
+            <div>
+              <p className="font-inter text-[12px] text-on-surface-variant">
+                Location
+              </p>
+              <p className="font-inter text-[14px] font-semibold text-on-surface">
+                {job.state_code || job.lga_name || "Remote"}
+              </p>
+            </div>
+          </div>
+          {job.preferred_date && (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center flex-none">
+                <CalendarOutlined className="text-primary text-[14px]" />
+              </div>
+              <div>
+                <p className="font-inter text-[12px] text-on-surface-variant">
+                  Preferred Date
+                </p>
+                <p className="font-inter text-[14px] font-semibold text-on-surface">
+                  {new Date(job.preferred_date).toLocaleDateString("en-NG")}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-outline-variant/30" />
+
+        <div>
+          <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-3">
+            Description
+          </h4>
+          <p className="font-inter text-[14px] text-on-surface-variant leading-relaxed line-clamp-6">
+            {job.description}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
-
-export default JobDetailSummary;

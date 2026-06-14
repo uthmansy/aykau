@@ -2,303 +2,277 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, Input, Select, Tag, Space, Button, Divider, Spin } from "antd";
-import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
-
+import { Select, Tag, Space, Button } from "antd";
+import {
+  CloseOutlined,
+  FilterOutlined,
+  AppstoreOutlined,
+  EnvironmentOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
 import { NIGERIAN_STATES } from "@/constants/constants";
 import {
   Category,
   fetchCategoriesWithSubcategories,
 } from "@/lib/helpers/categories";
-
 import type { JobFilters } from "@/lib/jobs/types";
 
 interface Props {
   initialFilters?: Partial<JobFilters>;
+  mobile?: boolean;
+  onClose?: () => void;
 }
 
-export default function JobFilters({ initialFilters = {} }: Props) {
+export default function JobFilters({
+  initialFilters = {},
+  mobile = false,
+  onClose,
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<Partial<JobFilters>>({
     ...initialFilters,
-    search: initialFilters.search ?? "",
   });
-
-  // 🟢 Fetch categories from database
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const load = async () => {
       try {
-        const data = await fetchCategoriesWithSubcategories();
-        setCategories(data);
-      } catch (error) {
-        console.error("Failed to load categories:", error);
+        setCategories(await fetchCategoriesWithSubcategories());
       } finally {
         setLoading(false);
       }
     };
-    loadCategories();
+    load();
   }, []);
 
   const urgencyOptions = [
-    { value: "asap", label: "ASAP" },
-    { value: "this-week", label: "This Week" },
-    { value: "this-month", label: "This Month" },
-    { value: "planning", label: "Flexible" },
+    { value: "asap", label: "Immediate" },
+    { value: "this-week", label: "Within a week" },
+    { value: "this-month", label: "This month" },
+    { value: "planning", label: "Planning ahead" },
   ];
 
-  // 🟢 Get subcategories for the selected category
-  const getSubcategories = () => {
-    if (!filters.category) return [];
-    const category = categories.find((c) => c.value === filters.category);
-    return category?.subcategories || [];
-  };
-
-  // 🟢 Get category label from database
-  const getCategoryLabel = (value: string) => {
-    return categories.find((c) => c.value === value)?.label || value;
-  };
-
-  // 🟢 Get subcategory label from database
-  const getSubcategoryLabel = (value: string) => {
-    const subs = getSubcategories();
-    return subs.find((opt) => opt.value === value)?.label || value;
-  };
-
-  const getUrgencyLabel = (value: string) => {
-    return urgencyOptions.find((opt) => opt.value === value)?.label || value;
-  };
+  const getSubcategories = () =>
+    categories.find((c) => c.value === filters.category)?.subcategories || [];
+  const getCategoryLabel = (v: string) =>
+    categories.find((c) => c.value === v)?.label || v;
+  const getSubcategoryLabel = (v: string) =>
+    getSubcategories().find((s) => s.value === v)?.label || v;
+  const getUrgencyLabel = (v: string) =>
+    urgencyOptions.find((o) => o.value === v)?.label || v;
 
   const syncFilters = (newFilters: Partial<JobFilters>) => {
     const params = new URLSearchParams(searchParams.toString());
     const merged = { ...filters, ...newFilters };
 
-    if (merged.search?.trim()) {
-      params.set("search", merged.search.trim());
-    } else {
-      params.delete("search");
-    }
+    const currentSearch = searchParams.get("search");
+    if (currentSearch) params.set("search", currentSearch);
 
     Object.entries(merged).forEach(([key, value]) => {
-      if (key !== "search" && value) {
-        params.set(key, value as string);
-      } else if (key !== "search") {
-        params.delete(key);
-      }
+      if (value) params.set(key, value as string);
+      else params.delete(key);
     });
-
     params.set("page", "1");
-    router.push(`/dashboard/jobs?${params.toString()}`);
+    router.push(`/jobs?${params.toString()}`);
   };
 
   const updateFilter = (key: keyof JobFilters, value: any) => {
     const updates = { [key]: value };
-    if (key === "category") {
-      updates.subcategory = undefined;
-    }
+    if (key === "category") updates.subcategory = undefined;
     const newFilters = { ...filters, ...updates };
     setFilters(newFilters);
     syncFilters(newFilters);
   };
 
   const clearAll = () => {
-    const emptyFilters = { search: "" };
-    setFilters(emptyFilters);
-    syncFilters(emptyFilters);
+    setFilters({});
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("category");
+    params.delete("subcategory");
+    params.delete("location");
+    params.delete("urgency");
+    params.delete("budget");
+    params.set("page", "1");
+    router.push(`/jobs?${params.toString()}`);
   };
 
-  const removeFilter = (key: keyof JobFilters) => {
-    const updates: Partial<JobFilters> = {
-      [key]: undefined,
-    };
+  const hasActiveFilters = () =>
+    filters.category ||
+    filters.subcategory ||
+    filters.location ||
+    filters.urgency;
 
-    const newFilters = { ...filters, ...updates };
-    setFilters(newFilters);
-    syncFilters(newFilters);
-  };
-
-  const hasActiveFilters = () => {
+  if (loading)
     return (
-      filters.search?.trim() ||
-      filters.category ||
-      filters.subcategory ||
-      filters.location ||
-      filters.urgency
+      <div className="p-8 text-center text-on-surface-variant">
+        Loading filters...
+      </div>
     );
-  };
-
-  const activeFiltersList = () => {
-    const active = [];
-    if (filters.search?.trim()) {
-      active.push({ key: "search", label: `Search: ${filters.search}` });
-    }
-    if (filters.category) {
-      active.push({
-        key: "category",
-        label: getCategoryLabel(filters.category),
-      });
-    }
-    if (filters.subcategory) {
-      active.push({
-        key: "subcategory",
-        label: getSubcategoryLabel(filters.subcategory),
-      });
-    }
-    if (filters.location) {
-      active.push({ key: "location", label: filters.location });
-    }
-    if (filters.urgency) {
-      active.push({ key: "urgency", label: getUrgencyLabel(filters.urgency) });
-    }
-    return active;
-  };
-
-  if (loading) {
-    return (
-      <Card
-        variant="borderless"
-        className="w-full max-w-[320px]"
-        styles={{ body: { padding: "20px" } }}
-      >
-        <div className="flex justify-center py-8">
-          <Spin />
-        </div>
-      </Card>
-    );
-  }
 
   return (
-    <Card
-      variant="borderless"
-      className="w-full max-w-[320px]"
-      styles={{ body: { padding: "20px" } }}
+    // ✅ Dynamic container: Sidebar gets card styling + sticky; Mobile gets full-height flex layout
+    <div
+      className={
+        mobile
+          ? "w-full h-full flex flex-col bg-surface-container-lowest"
+          : "bg-surface-container-lowest rounded-lg shadow-[var(--shadow-level-1)] border border-outline-variant/20 overflow-hidden w-full sticky top-24"
+      }
     >
       {/* Header */}
-      <div className="mb-5 flex items-center justify-between">
-        <Space align="center">
-          <FilterOutlined className="text-gray-400" />
-          <span className="font-medium text-gray-800">Filters</span>
-        </Space>
-        {hasActiveFilters() && (
-          <Button type="link" size="small" onClick={clearAll}>
-            Clear all
-          </Button>
+      <div
+        className={`px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center ${mobile ? "" : "bg-primary/5"}`}
+      >
+        <h3 className="font-inter text-[16px] font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+          <FilterOutlined /> Filters
+        </h3>
+        {mobile && onClose && (
+          <button
+            onClick={onClose}
+            className="text-on-surface-variant hover:text-primary transition-colors p-2 -mr-2"
+          >
+            <CloseOutlined className="text-[18px]" />
+          </button>
         )}
       </div>
 
-      {/* Search */}
-      <div className="mb-5">
-        <Input
-          placeholder="Search jobs"
-          prefix={<SearchOutlined className="text-gray-400" />}
-          value={filters.search}
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          onPressEnter={() => syncFilters(filters)}
-          allowClear
-          size="middle"
-        />
-      </div>
-
-      {/* Active filter tags */}
-      {hasActiveFilters() && (
-        <div className="mb-5">
-          <Space wrap size={[8, 8]}>
-            {activeFiltersList().map((filter) => (
-              <Tag
-                key={filter.key}
-                closable
-                onClose={() => removeFilter(filter.key as keyof JobFilters)}
-                className="flex items-center gap-1"
-              >
-                {filter.label}
-              </Tag>
-            ))}
-          </Space>
+      {/* Scrollable Content */}
+      <div
+        className={`p-6 space-y-6 ${mobile ? "flex-1 overflow-y-auto" : ""}`}
+      >
+        {/* Category */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-primary">
+            <AppstoreOutlined className="text-[20px]" />
+            <h4 className="font-inter text-[14px] font-bold uppercase tracking-wider">
+              Category
+            </h4>
+          </div>
+          <Select
+            placeholder="All Categories"
+            value={filters.category}
+            onChange={(v) => updateFilter("category", v)}
+            options={categories.map((c) => ({
+              value: c.value,
+              label: `${c.icon || ""} ${c.label}`,
+            }))}
+            allowClear
+            showSearch
+            className="w-full"
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
         </div>
-      )}
 
-      <Divider className="my-4!" />
+        {/* Subcategories */}
+        {getSubcategories().length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-inter text-[14px] font-bold uppercase tracking-wider text-primary">
+              Services
+            </h4>
+            <Space wrap size={[8, 8]}>
+              {getSubcategories().map((sub) => (
+                <Tag.CheckableTag
+                  key={sub.value}
+                  checked={filters.subcategory === sub.value}
+                  onChange={(c) =>
+                    updateFilter("subcategory", c ? sub.value : undefined)
+                  }
+                  className="rounded-full! px-3! py-1! border! border-outline-variant! bg-surface-container! text-on-surface-variant!"
+                >
+                  {sub.label}
+                </Tag.CheckableTag>
+              ))}
+            </Space>
+          </div>
+        )}
 
-      {/* Category */}
-      <div className="mb-4">
-        <div className="mb-2 text-sm text-gray-600">Category</div>
-        <Select
-          placeholder="Select category"
-          value={filters.category}
-          onChange={(value) => updateFilter("category", value)}
-          options={categories.map((c) => ({
-            value: c.value,
-            label: `${c.icon || ""} ${c.label}`,
-          }))}
-          allowClear
-          showSearch
-          size="middle"
-          className="w-full"
-          filterOption={(input, option) =>
-            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-          }
-        />
-      </div>
-
-      {/* Subcategories */}
-      {getSubcategories().length > 0 && (
-        <div className="mb-4">
-          <div className="mb-2 text-sm text-gray-600">Services</div>
-          <Space wrap size={[8, 8]}>
-            {getSubcategories().map((sub) => (
-              <Tag.CheckableTag
-                key={sub.value}
-                checked={filters.subcategory === sub.value}
-                onChange={(checked) =>
-                  updateFilter("subcategory", checked ? sub.value : undefined)
-                }
-              >
-                {sub.label}
-              </Tag.CheckableTag>
-            ))}
-          </Space>
+        {/* Location */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-primary">
+            <EnvironmentOutlined className="text-[20px]" />
+            <h4 className="font-inter text-[14px] font-bold uppercase tracking-wider">
+              Location
+            </h4>
+          </div>
+          <Select
+            placeholder="Anywhere"
+            value={filters.location}
+            onChange={(v) => updateFilter("location", v)}
+            options={NIGERIAN_STATES.map((s) => ({ value: s, label: s }))}
+            allowClear
+            showSearch
+            className="w-full"
+          />
         </div>
-      )}
 
-      {/* Location */}
-      <div className="mb-4">
-        <div className="mb-2 text-sm text-gray-600">Location</div>
-        <Select
-          placeholder="Anywhere"
-          value={filters.location}
-          onChange={(value) => updateFilter("location", value)}
-          options={NIGERIAN_STATES.map((state) => ({
-            value: state,
-            label: state,
-          }))}
-          allowClear
-          showSearch
-          size="middle"
-          className="w-full"
-        />
+        {/* Urgency */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-primary">
+            <ClockCircleOutlined className="text-[20px]" />
+            <h4 className="font-inter text-[14px] font-bold uppercase tracking-wider">
+              Urgency
+            </h4>
+          </div>
+          <div className="flex flex-col gap-2">
+            {urgencyOptions.map((opt) => (
+              <label
+                key={opt.value}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.urgency === opt.value}
+                  onChange={(e) =>
+                    updateFilter(
+                      "urgency",
+                      e.target.checked ? opt.value : undefined
+                    )
+                  }
+                  className="rounded border-outline-variant text-secondary focus:ring-secondary/20 w-4 h-4"
+                />
+                <span className="font-inter text-[14px] text-on-surface-variant group-hover:text-primary transition-colors">
+                  {opt.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {!mobile && hasActiveFilters() && (
+          <button
+            onClick={clearAll}
+            className="w-full py-3 text-[14px] text-on-surface-variant hover:text-secondary hover:bg-secondary/5 rounded-lg transition-all border border-transparent hover:border-secondary/20 font-medium"
+          >
+            Clear Applied Filters
+          </button>
+        )}
       </div>
 
-      {/* Urgency */}
-      <div className="mb-4">
-        <div className="mb-2 text-sm text-gray-600">Urgency</div>
-        <Space wrap size={[8, 8]}>
-          {urgencyOptions.map((option) => (
-            <Tag.CheckableTag
-              key={option.value}
-              checked={filters.urgency === option.value}
-              onChange={(checked) =>
-                updateFilter("urgency", checked ? option.value : undefined)
-              }
+      {/* ✅ Mobile Sticky Footer */}
+      {mobile && (
+        <div className="p-4 border-t border-outline-variant/30 bg-surface-container-lowest flex gap-3">
+          {hasActiveFilters() && (
+            <Button
+              onClick={clearAll}
+              className="rounded-lg! h-auto! py-3! flex-1! border-outline-variant! text-on-surface-variant!"
             >
-              {option.label}
-            </Tag.CheckableTag>
-          ))}
-        </Space>
-      </div>
-    </Card>
+              Clear
+            </Button>
+          )}
+          <Button
+            type="primary"
+            block
+            onClick={onClose}
+            className="rounded-lg! h-auto! py-3! font-inter! text-[14px]! font-medium!"
+          >
+            Show Results
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

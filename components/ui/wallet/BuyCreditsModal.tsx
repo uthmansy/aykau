@@ -49,7 +49,6 @@ export default function BuyCreditsModal({
   const [activeTab, setActiveTab] = useState<"fiat" | "paystack">("paystack");
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
-  // Fetch packages and wallet balances
   useEffect(() => {
     if (open && userId) {
       fetchPackages();
@@ -62,21 +61,15 @@ export default function BuyCreditsModal({
   const fetchPackages = async () => {
     setLoadingPackages(true);
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("credit_packages")
         .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
-
-      if (error) throw error;
       setPackages(data || []);
-
-      // Auto-select the "Popular" package (second one) or first one
-      if (data && data.length > 0) {
+      if (data && data.length > 0)
         setSelectedPackage(data.length > 1 ? data[1] : data[0]);
-      }
     } catch (error) {
-      console.error("Error fetching packages:", error);
       message.error("Failed to load credit packages.");
     } finally {
       setLoadingPackages(false);
@@ -85,78 +78,45 @@ export default function BuyCreditsModal({
 
   const fetchWalletBalances = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("wallets")
         .select("fiat_balance, credit_balance")
         .eq("user_id", userId)
         .single();
-
-      if (error && error.code !== "PGRST116") throw error;
       setFiatBalance(Number(data?.fiat_balance || 0));
       setCreditBalance(Number(data?.credit_balance || 0));
-    } catch (error) {
-      console.error("Error fetching wallet:", error);
-    }
+    } catch (error) {}
   };
 
-  // Pay with Fiat Balance
   const handleFiatPurchase = async () => {
-    if (!selectedPackage) return;
-
-    if (fiatBalance < selectedPackage.price_naira) {
-      message.error("Insufficient fiat balance. Please add funds first.");
-      return;
-    }
-
+    if (!selectedPackage || fiatBalance < selectedPackage.price_naira) return;
     setLoading(true);
     try {
       const { error } = await supabase.rpc("buy_credits_with_fiat", {
         p_package_id: selectedPackage.id,
       });
-
       if (error) throw error;
-
-      message.success(
-        `${selectedPackage.credits_amount} credits added to your wallet!`
-      );
+      message.success(`${selectedPackage.credits_amount} credits added!`);
       setPurchaseSuccess(true);
       fetchWalletBalances();
       onSuccess?.();
-
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      setTimeout(() => onClose(), 2000);
     } catch (error: any) {
-      console.error("Purchase error:", error);
-      if (error.message?.includes("insufficient_fiat")) {
-        message.error("Insufficient fiat balance.");
-      } else {
-        message.error("Failed to purchase credits. Please try again.");
-      }
+      message.error("Failed to purchase credits.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Pay with Paystack
   const handlePaystackPurchase = async () => {
     if (!selectedPackage) return;
-
     setLoading(true);
     try {
-      // 🟢 Build callback URL pointing to the bridge page
-      let callbackUrl =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/dashboard/payment/processing?intent=credit_purchase`
-          : "https://yourdomain.com/dashboard/payment/processing?intent=credit_purchase";
-
-      // Add job ID if present
-      if (jobId) {
-        callbackUrl += `&unlock_job=${jobId}`;
-      }
-
-      const { data: intentData, error: intentError } =
-        await supabase.functions.invoke("create-payment-intent", {
+      let callbackUrl = `${window.location.origin}/dashboard/payment/processing?intent=credit_purchase`;
+      if (jobId) callbackUrl += `&unlock_job=${jobId}`;
+      const { data, error } = await supabase.functions.invoke(
+        "create-payment-intent",
+        {
           body: {
             amount: selectedPackage.price_naira,
             email: userEmail,
@@ -165,45 +125,53 @@ export default function BuyCreditsModal({
               user_id: userId,
               type: "credit_purchase",
               credits_amount: selectedPackage.credits_amount,
-              package_name: selectedPackage.name,
             },
           },
-        });
-
-      if (intentError) throw intentError;
-
-      window.location.href = intentData.authorizationUrl;
+        }
+      );
+      if (error) throw error;
+      window.location.href = data.authorizationUrl;
     } catch (error: any) {
-      console.error("Paystack error:", error);
-      message.error("Failed to initialize payment. Please try again.");
+      message.error("Failed to initialize payment.");
       setLoading(false);
     }
   };
 
   const formatNaira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
+  const getEffectivePricePerCredit = (pkg: CreditPackage) =>
+    Math.round(pkg.price_naira / pkg.credits_amount);
 
-  const getEffectivePricePerCredit = (pkg: CreditPackage) => {
-    return Math.round(pkg.price_naira / pkg.credits_amount);
-  };
-
-  // Success State
   if (purchaseSuccess) {
     return (
-      <Modal open={open} onCancel={onClose} footer={null} width={440} centered>
-        <div className="py-8 text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-            <CheckCircleFilled className="text-5xl text-green-600" />
+      <Modal
+        open={open}
+        onCancel={onClose}
+        footer={null}
+        width={440}
+        centered
+        styles={{
+          body: {
+            borderRadius: "16px",
+            padding: "40px",
+          },
+        }}
+      >
+        <div className="text-center">
+          <div className="w-20 h-20 rounded-full bg-success-emerald/10 flex items-center justify-center mx-auto mb-6">
+            <CheckCircleFilled className="text-5xl text-success-emerald" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+          <h3 className="font-manrope text-[24px] font-semibold text-primary mb-3">
             Purchase Successful!
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="font-inter text-base text-on-surface-variant mb-8">
             {selectedPackage?.credits_amount} credits have been added to your
             wallet.
           </p>
-          <div className="bg-gray-50 rounded-xl p-4 inline-block">
-            <p className="text-sm text-gray-500 mb-1">New Credit Balance</p>
-            <p className="text-3xl font-bold text-gray-900">
+          <div className="bg-surface-container rounded-2xl p-6 inline-block w-full max-w-xs">
+            <p className="font-inter text-[12px] font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
+              New Credit Balance
+            </p>
+            <p className="font-manrope text-[32px] font-bold text-primary">
               {creditBalance + (selectedPackage?.credits_amount || 0)}
             </p>
           </div>
@@ -219,125 +187,112 @@ export default function BuyCreditsModal({
       footer={null}
       width={640}
       centered
-      className="buy-credits-modal"
+      styles={{
+        body: {
+          padding: "32px",
+          borderRadius: "16px",
+          backgroundColor: "var(--surface-container-lowest)",
+        },
+      }}
     >
       <div className="py-2">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <ThunderboltOutlined className="text-xl text-gray-900" />
-            <h2 className="text-2xl font-bold text-gray-900">Buy Credits</h2>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <ThunderboltOutlined className="text-2xl text-primary" />
+            <h2 className="font-manrope text-[24px] font-semibold text-primary">
+              Buy Credits
+            </h2>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="font-inter text-base text-on-surface-variant">
             Credits let you unlock jobs and send quotes to customers.
           </p>
         </div>
 
-        {/* Current Balances */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-            <div className="flex items-center gap-2 mb-1">
-              <StarOutlined className="text-gray-500" />
-              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-surface-container rounded-2xl p-4 border border-outline-variant/20">
+            <div className="flex items-center gap-2 mb-2">
+              <StarOutlined className="text-on-surface-variant" />
+              <span className="font-inter text-[12px] font-semibold uppercase tracking-wider text-on-surface-variant">
                 Credits
               </span>
             </div>
-            <p className="text-xl font-bold text-gray-900">{creditBalance}</p>
+            <p className="font-manrope text-[24px] font-bold text-primary">
+              {creditBalance}
+            </p>
           </div>
-          <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-            <div className="flex items-center gap-2 mb-1">
-              <WalletOutlined className="text-gray-500" />
-              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="bg-surface-container rounded-2xl p-4 border border-outline-variant/20">
+            <div className="flex items-center gap-2 mb-2">
+              <WalletOutlined className="text-on-surface-variant" />
+              <span className="font-inter text-[12px] font-semibold uppercase tracking-wider text-on-surface-variant">
                 Fiat Balance
               </span>
             </div>
-            <p className="text-xl font-bold text-gray-900">
+            <p className="font-manrope text-[24px] font-bold text-primary">
               {formatNaira(fiatBalance)}
             </p>
           </div>
         </div>
 
-        {/* Package Selection */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        <div className="mb-8">
+          <h3 className="font-inter text-[14px] font-semibold text-on-surface mb-4">
             Select a Package
           </h3>
-
           {loadingPackages ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton
                   key={i}
                   active
                   paragraph={{ rows: 2 }}
-                  className="h-28 rounded-xl"
+                  className="h-32 rounded-2xl"
                 />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {packages.map((pkg) => {
                 const isSelected = selectedPackage?.id === pkg.id;
-                const isPopular = pkg.name.toLowerCase() === "popular";
-                const isBestValue = pkg.name.toLowerCase() === "best value";
-                const effectivePrice = getEffectivePricePerCredit(pkg);
-
+                const isPopular = pkg.name.toLowerCase().includes("popular");
+                const isBestValue = pkg.name.toLowerCase().includes("best");
                 return (
                   <button
                     key={pkg.id}
                     onClick={() => setSelectedPackage(pkg)}
-                    className={`relative text-left p-4 rounded-xl border-2 transition-all ${
-                      isSelected
-                        ? "border-gray-900 bg-gray-50 shadow-sm"
-                        : "border-gray-200 bg-white hover:border-gray-400"
-                    }`}
+                    className={`relative text-left p-5 rounded-2xl border-2 transition-all w-full ${isSelected ? "border-primary bg-primary/5 shadow-md" : "border-outline-variant/30 bg-surface hover:border-primary/40"}`}
                   >
-                    {/* Badge */}
                     {(isPopular || isBestValue) && (
                       <div
-                        className={`absolute -top-2.5 left-4 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                          isBestValue
-                            ? "bg-green-600 text-white"
-                            : "bg-gray-900 text-white"
-                        }`}
+                        className={`absolute -top-3 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${isBestValue ? "bg-success-emerald text-white" : "bg-secondary text-on-secondary"}`}
                       >
                         {pkg.name}
                       </div>
                     )}
-
-                    {/* Credits Amount */}
-                    <div className="flex items-baseline gap-1 mb-1 mt-1">
-                      <span className="text-3xl font-bold text-gray-900">
+                    <div className="flex items-baseline gap-1 mb-2 mt-1">
+                      <span className="font-manrope text-[32px] font-bold text-primary">
                         {pkg.credits_amount}
                       </span>
-                      <span className="text-sm text-gray-500 font-medium">
+                      <span className="font-inter text-[14px] text-on-surface-variant font-medium">
                         credits
                       </span>
                     </div>
-
-                    {/* Price */}
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg font-semibold text-gray-900">
+                      <span className="font-manrope text-[20px] font-semibold text-on-surface">
                         {formatNaira(pkg.price_naira)}
                       </span>
                       {pkg.discount_percentage > 0 && (
                         <Tag
-                          color="green"
-                          className="text-[10px] rounded-full border-0 px-1.5 py-0 m-0"
+                          color="success"
+                          className="rounded-full! border-0! text-[10px]! px-2! py-0! m-0! font-bold!"
                         >
                           {pkg.discount_percentage}% OFF
                         </Tag>
                       )}
                     </div>
-
-                    {/* Effective Price */}
-                    <p className="text-xs text-gray-500">
-                      {formatNaira(effectivePrice)} per credit
+                    <p className="font-inter text-[12px] text-on-surface-variant">
+                      {formatNaira(getEffectivePricePerCredit(pkg))} per credit
                     </p>
-
-                    {/* Selected Indicator */}
                     {isSelected && (
-                      <CheckCircleFilled className="absolute top-3 right-3 text-gray-900 text-lg" />
+                      <CheckCircleFilled className="absolute top-4 right-4 text-primary text-xl" />
                     )}
                   </button>
                 );
@@ -346,9 +301,8 @@ export default function BuyCreditsModal({
           )}
         </div>
 
-        {/* Payment Method Tabs */}
         {selectedPackage && (
-          <div className="border-t border-gray-200 pt-5">
+          <div className="border-t border-outline-variant/30 pt-6">
             <Tabs
               activeKey={activeTab}
               onChange={(key) => setActiveTab(key as "fiat" | "paystack")}
@@ -356,28 +310,29 @@ export default function BuyCreditsModal({
                 {
                   key: "paystack",
                   label: (
-                    <span className="flex items-center gap-2">
-                      <CreditCardOutlined />
-                      Pay with Card/Bank
+                    <span className="flex items-center gap-2 font-inter">
+                      <CreditCardOutlined /> Pay with Card/Bank
                     </span>
                   ),
                   children: (
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between">
+                    <div className="space-y-5">
+                      <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-blue-900 font-medium">
+                          <p className="font-inter text-[14px] font-medium text-primary">
                             Pay {formatNaira(selectedPackage.price_naira)} via
                             Paystack
                           </p>
-                          <p className="text-xs text-blue-700 mt-0.5">
+                          <p className="font-inter text-[12px] text-on-surface-variant mt-1">
                             Secure payment • Instant credit delivery
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-blue-900">
+                          <p className="font-manrope text-[24px] font-bold text-primary">
                             +{selectedPackage.credits_amount}
                           </p>
-                          <p className="text-xs text-blue-700">credits</p>
+                          <p className="font-inter text-[12px] text-on-surface-variant">
+                            credits
+                          </p>
                         </div>
                       </div>
                       <Button
@@ -386,7 +341,7 @@ export default function BuyCreditsModal({
                         block
                         loading={loading}
                         onClick={handlePaystackPurchase}
-                        className="bg-gray-900 hover:bg-gray-800 border-0 h-12 text-base font-medium rounded-lg"
+                        className="bg-secondary! hover:bg-secondary/90! border-none! h-12! text-base! font-inter! font-medium! rounded-lg!"
                       >
                         Proceed to Paystack
                       </Button>
@@ -396,45 +351,45 @@ export default function BuyCreditsModal({
                 {
                   key: "fiat",
                   label: (
-                    <span className="flex items-center gap-2">
-                      <WalletOutlined />
-                      Pay with Wallet Balance
+                    <span className="flex items-center gap-2 font-inter">
+                      <WalletOutlined /> Pay with Wallet Balance
                     </span>
                   ),
                   children: (
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       {fiatBalance < selectedPackage.price_naira ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                          <p className="text-sm text-amber-900 font-medium mb-1">
+                        <div className="bg-error/5 border border-error/20 rounded-2xl p-5">
+                          <p className="font-inter text-[14px] font-medium text-error mb-1">
                             Insufficient Balance
                           </p>
-                          <p className="text-xs text-amber-700">
+                          <p className="font-inter text-[12px] text-on-surface-variant">
                             You need {formatNaira(selectedPackage.price_naira)}{" "}
-                            but only have {formatNaira(fiatBalance)}. Please add
-                            funds to your wallet first.
+                            but only have {formatNaira(fiatBalance)}.
                           </p>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Package Cost:</span>
-                            <span className="font-medium text-gray-900">
+                        <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-5 space-y-3">
+                          <div className="flex justify-between font-inter text-[14px]">
+                            <span className="text-on-surface-variant">
+                              Package Cost:
+                            </span>
+                            <span className="font-medium text-on-surface">
                               -{formatNaira(selectedPackage.price_naira)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
+                          <div className="flex justify-between font-inter text-[14px]">
+                            <span className="text-on-surface-variant">
                               Current Balance:
                             </span>
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-on-surface">
                               {formatNaira(fiatBalance)}
                             </span>
                           </div>
-                          <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
-                            <span className="text-gray-700 font-medium">
+                          <div className="border-t border-outline-variant/30 pt-3 flex justify-between font-inter text-[14px]">
+                            <span className="text-on-surface font-medium">
                               New Balance:
                             </span>
-                            <span className="font-medium text-green-700">
+                            <span className="font-medium text-success-emerald">
                               {formatNaira(
                                 fiatBalance - selectedPackage.price_naira
                               )}
@@ -449,7 +404,7 @@ export default function BuyCreditsModal({
                         loading={loading}
                         disabled={fiatBalance < selectedPackage.price_naira}
                         onClick={handleFiatPurchase}
-                        className="bg-gray-900 hover:bg-gray-800 border-0 h-12 text-base font-medium rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        className="bg-secondary! hover:bg-secondary/90! border-none! h-12! text-base! font-inter! font-medium! rounded-lg! disabled:bg-outline-variant! disabled:text-on-surface-variant!"
                       >
                         Confirm Purchase
                       </Button>

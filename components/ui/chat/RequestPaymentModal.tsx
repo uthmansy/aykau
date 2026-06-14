@@ -2,16 +2,14 @@
 "use client";
 
 import { useState } from "react";
-import { Modal, InputNumber, Input, Button, App, Typography } from "antd";
+import { Modal, InputNumber, Input, Button, App } from "antd";
 import { supabase } from "@/services/supabase/client";
-
-const { Text, Title } = Typography;
 
 interface Props {
   open: boolean;
   onClose: () => void;
   contractId: string;
-  maxAmount: number; // The total agreed amount or remaining escrow
+  maxAmount: number;
   onRequestSuccess: () => void;
 }
 
@@ -31,44 +29,30 @@ export default function RequestPaymentModal({
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!amount || amount <= 0) {
-      message.warning("Please enter a valid amount.");
-      return;
-    }
-    if (!description.trim()) {
-      message.warning("Please provide a brief description for this request.");
-      return;
-    }
-
+    if (!amount || amount <= 0)
+      return message.warning("Please enter a valid amount.");
+    if (!description.trim())
+      return message.warning("Please provide a brief description.");
     setLoading(true);
     try {
-      // 🟢 Call the secure RPC instead of direct insert
       const { error } = await supabase.rpc("create_payment_request", {
         p_contract_id: contractId,
         p_amount: amount,
         p_description: description.trim(),
         p_request_type: requestType,
       });
-
       if (error) throw error;
-
-      message.success("Payment request sent successfully!");
+      message.success("Payment request sent!");
       onRequestSuccess();
       onClose();
       setAmount(null);
       setDescription("");
     } catch (error: any) {
-      console.error("Request error:", error);
-      // Handle specific validation errors from the RPC
-      if (error.message.includes("invalid_amount")) {
-        message.error("The requested amount exceeds the available limit.");
-      } else if (error.message.includes("unauthorized")) {
-        message.error(
-          "You do not have permission to request payment for this contract."
-        );
-      } else {
-        message.error("Failed to send request. Please try again.");
-      }
+      if (error.message.includes("invalid_amount"))
+        message.error("Amount exceeds available limit.");
+      else if (error.message.includes("unauthorized"))
+        message.error("Unauthorized to request payment.");
+      else message.error("Failed to send request.");
     } finally {
       setLoading(false);
     }
@@ -78,49 +62,49 @@ export default function RequestPaymentModal({
     <Modal
       open={open}
       onCancel={onClose}
-      title="Request Payment"
       footer={null}
       destroyOnHidden
       width={480}
+      styles={{
+        body: {
+          padding: "32px",
+          borderRadius: "16px",
+          backgroundColor: "var(--surface-container-lowest)",
+        },
+      }}
     >
-      <div className="py-4 space-y-5">
-        {/* Request Type Selection */}
+      <div className="space-y-6">
         <div>
-          <Text strong className="block text-sm text-gray-700 mb-2">
+          <h3 className="font-manrope text-[24px] font-semibold text-primary mb-1">
+            Request Payment
+          </h3>
+          <p className="font-inter text-[14px] text-on-surface-variant">
+            Request funds from escrow or customer.
+          </p>
+        </div>
+        <div>
+          <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-3">
             Request Type
-          </Text>
+          </span>
           <div className="flex gap-3">
-            <Button
-              className={`flex-1 !h-10 !rounded-lg !font-medium ${
-                requestType === "fund_escrow"
-                  ? "!bg-gray-900 !text-white !border-gray-900"
-                  : "!bg-white !text-gray-600 !border-gray-300 hover:!border-gray-400"
-              }`}
-              onClick={() => setRequestType("fund_escrow")}
-            >
-              Fund Escrow
-            </Button>
-            <Button
-              className={`flex-1 !h-10 !rounded-lg !font-medium ${
-                requestType === "release_escrow"
-                  ? "!bg-gray-900 !text-white !border-gray-900"
-                  : "!bg-white !text-gray-600 !border-gray-300 hover:!border-gray-400"
-              }`}
-              onClick={() => setRequestType("release_escrow")}
-            >
-              Release Escrow
-            </Button>
+            {["fund_escrow", "release_escrow"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setRequestType(type as any)}
+                className={`flex-1 h-10 rounded-lg font-inter text-[14px] font-medium transition-all border ${requestType === type ? "bg-primary/5 border-primary text-primary" : "bg-surface-container border-outline-variant/30 text-on-surface-variant hover:border-primary/40"}`}
+              >
+                {type === "fund_escrow" ? "Fund Escrow" : "Release Escrow"}
+              </button>
+            ))}
           </div>
         </div>
-
-        {/* Amount Input */}
         <div>
-          <Text strong className="block text-sm text-gray-700 mb-2">
+          <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-2">
             Amount Requested
-          </Text>
+          </span>
           <InputNumber
             size="large"
-            className="!w-full !h-12 !rounded-lg !text-lg"
+            className="w-full! h-12! rounded-lg! bg-surface-container! border-none! font-inter! text-[16px]! focus:ring-1! focus:ring-primary/30!"
             placeholder="e.g. 50000"
             min={100}
             max={maxAmount}
@@ -132,35 +116,31 @@ export default function RequestPaymentModal({
             }
             parser={(value) => value!.replace(/\₦\s?|(,*)/g, "") as any}
           />
-          <Text className="!text-gray-400 !text-xs block mt-1.5">
+          <span className="font-inter text-[12px] text-outline block mt-1.5">
             Maximum available: ₦{Number(maxAmount).toLocaleString()}
-          </Text>
+          </span>
         </div>
-
-        {/* Description Input */}
         <div>
-          <Text strong className="block text-sm text-gray-700 mb-2">
+          <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant block mb-2">
             Description
-          </Text>
+          </span>
           <Input.TextArea
             rows={3}
-            placeholder="e.g., 50% upfront for materials and initial labor"
+            placeholder="e.g., 50% upfront for materials..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="!rounded-lg !border-gray-300 focus:!border-gray-500"
+            className="w-full! bg-surface-container! border-none! rounded-lg! py-3! px-4! font-inter! text-[14px]! focus:ring-1! focus:ring-primary/30! resize-none!"
             maxLength={200}
             showCount
           />
         </div>
-
-        {/* Submit Button */}
         <Button
           type="primary"
           size="large"
           block
           loading={loading}
           onClick={handleSubmit}
-          className="!h-12 !rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !font-medium !mt-2"
+          className="!rounded-lg! !h-auto! !py-3! !bg-secondary! hover:!bg-secondary/90! !border-none! font-inter! text-[14px]! font-medium! shadow-lg! shadow-secondary/20!"
         >
           Send Request
         </Button>

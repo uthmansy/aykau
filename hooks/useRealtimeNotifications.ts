@@ -1,6 +1,6 @@
 // hooks/useRealtimeNotifications.ts
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/services/supabase/client"; // Adjust path
+import { supabase } from "@/services/supabase/client";
 import { Notification } from "@/types/db";
 
 export function useRealtimeNotifications(userId: string | undefined) {
@@ -19,7 +19,7 @@ export function useRealtimeNotifications(userId: string | undefined) {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(50); // Limit for performance
+        .limit(50);
 
       if (!error && data) {
         setNotifications(data as Notification[]);
@@ -35,8 +35,14 @@ export function useRealtimeNotifications(userId: string | undefined) {
   useEffect(() => {
     if (!userId) return;
 
+    // ✅ THE FIX: Generate a unique ID for this specific subscription instance.
+    // This prevents collisions if React Strict Mode/Turbopack remounts the component
+    // before the async cleanup finishes, OR if this hook is used in multiple components.
+    const uniqueSubId = Math.random().toString(36).substring(2, 9);
+    const channelName = `notifications-realtime:${userId}:${uniqueSubId}`;
+
     const channel = supabase
-      .channel(`notifications-realtime:${userId}`)
+      .channel(channelName)
       // Listen for NEW notifications
       .on(
         "postgres_changes",
@@ -54,7 +60,7 @@ export function useRealtimeNotifications(userId: string | undefined) {
           }
         }
       )
-      // Listen for UPDATES (e.g., marked as read from another device)
+      // Listen for UPDATES
       .on(
         "postgres_changes",
         {
@@ -65,26 +71,28 @@ export function useRealtimeNotifications(userId: string | undefined) {
         },
         (payload) => {
           const updatedNotification = payload.new as Notification;
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n.id === updatedNotification.id ? updatedNotification : n
-            )
-          );
 
-          // Recalculate unread count if status changed
-          const oldNotification = notifications.find(
-            (n) => n.id === updatedNotification.id
-          );
-          if (
-            oldNotification &&
-            oldNotification.is_read !== updatedNotification.is_read
-          ) {
-            if (updatedNotification.is_read) {
-              setUnreadCount((prev) => Math.max(0, prev - 1));
-            } else {
-              setUnreadCount((prev) => prev + 1);
+          // ✅ Using functional updater to avoid stale closures
+          setNotifications((prev) => {
+            const oldNotification = prev.find(
+              (n) => n.id === updatedNotification.id
+            );
+
+            if (
+              oldNotification &&
+              oldNotification.is_read !== updatedNotification.is_read
+            ) {
+              if (updatedNotification.is_read) {
+                setUnreadCount((c) => Math.max(0, c - 1));
+              } else {
+                setUnreadCount((c) => c + 1);
+              }
             }
-          }
+
+            return prev.map((n) =>
+              n.id === updatedNotification.id ? updatedNotification : n
+            );
+          });
         }
       )
       .subscribe();
@@ -92,17 +100,15 @@ export function useRealtimeNotifications(userId: string | undefined) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, notifications]);
+  }, [userId]); // <--- Dependency array remains clean
 
   // 3. Helper: Mark as Read (Optimistic UI)
   const markAsRead = useCallback(async (id: string) => {
-    // Update UI immediately
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
-    // Update Database
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
   }, []);
 

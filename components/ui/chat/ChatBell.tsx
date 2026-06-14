@@ -10,20 +10,36 @@ export default function ChatBell() {
   const userId = useAuthStore((state) => state.user?.id);
   const { unreadMessageCount } = useChatNotifications();
 
-  // Don't render if no user is logged in
   if (!userId) return null;
 
   return (
-    // Link to your future /dashboard/messages page
-    <Link href="/dashboard/messages" className="block">
-      <Badge count={unreadMessageCount} size="small">
+    <Link href="/dashboard/messages" style={{ display: "block" }}>
+      <Badge
+        count={unreadMessageCount}
+        size="small"
+        style={{ boxShadow: "none" }}
+        // Override badge background to primary navy
+        classNames={{ root: "chat-badge" }}
+      >
         <Avatar
           icon={<MessageOutlined />}
           shape="circle"
-          size="small"
-          className="bg-slate-700! text-slate-200! ring-2 ring-white/10"
+          size={32}
+          style={{
+            backgroundColor: "#f0ecf4",
+            color: "#464651",
+            transition: "opacity 0.2s",
+          }}
         />
       </Badge>
+      <style jsx global>{`
+        .chat-badge .ant-badge-count {
+          background-color: #15196c;
+          box-shadow: none;
+          font-family: "Inter", sans-serif;
+          font-weight: 600;
+        }
+      `}</style>
     </Link>
   );
 }

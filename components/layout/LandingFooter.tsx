@@ -3,46 +3,118 @@
 
 import { Typography } from "antd";
 import Image from "next/image";
+import Link from "next/link";
 
 const { Text } = Typography;
 
 export default function LandingFooter() {
   return (
-    <footer className="bg-white border-t border-gray-100 py-12 px-6">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-2">
+    <footer
+      style={{
+        background: "#ffffff", // surface-container-lowest
+        borderTop: "1px solid #c7c5d3", // outline-variant
+        padding: "3rem 1.5rem", // 48px 24px (base units: 6*8px, 3*8px)
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "var(--container-max, 1440px)",
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1.5rem", // 24px = 3*8px
+        }}
+        className="footer-row"
+      >
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <Image
             src="/header-logo.png"
             alt="aykau Logo"
             width={100}
             height={32}
-            className="object-contain opacity-80 hover:opacity-100 transition-opacity"
+            style={{
+              objectFit: "contain",
+              opacity: 0.8,
+              transition: "opacity 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
           />
         </div>
-        <Text className="!text-sm !text-gray-400">
+
+        {/* Copyright */}
+        <Text
+          style={{
+            fontSize: "0.875rem", // label-md
+            color: "#777682", // outline
+          }}
+        >
           © {new Date().getFullYear()} aykau. All rights reserved.
         </Text>
-        <div className="flex gap-6">
-          <a
+
+        {/* Footer Links */}
+        <div
+          style={{
+            display: "flex",
+            gap: "1.5rem", // 24px = 3*8px
+          }}
+        >
+          <Link
             href="/privacy"
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              color: "#464651", // on-surface-variant
+              textDecoration: "none",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#15196c")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#464651")}
           >
             Privacy
-          </a>
-          <a
+          </Link>
+          <Link
             href="/terms"
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              color: "#464651",
+              textDecoration: "none",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#15196c")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#464651")}
           >
             Terms
-          </a>
-          <a
+          </Link>
+          <Link
             href="/support"
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              color: "#464651",
+              textDecoration: "none",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#15196c")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#464651")}
           >
             Support
-          </a>
+          </Link>
         </div>
       </div>
+
+      {/* Responsive breakpoint: switch to row layout on desktop */}
+      <style jsx>{`
+        @media (min-width: 768px) {
+          .footer-row {
+            flex-direction: row !important;
+          }
+        }
+      `}</style>
     </footer>
   );
 }

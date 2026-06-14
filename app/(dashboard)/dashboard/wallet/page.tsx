@@ -1,17 +1,7 @@
-// app/(dashboard)/dashboard/wallet/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Typography,
-  Skeleton,
-  Tag,
-  Empty,
-  App,
-  Button,
-  Modal,
-  InputNumber,
-} from "antd";
+import { Skeleton, Empty, App, Modal, InputNumber, Button } from "antd";
 import {
   WalletOutlined,
   StarOutlined,
@@ -21,413 +11,400 @@ import {
   BankOutlined,
   PercentageOutlined,
   SwapOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
+  FilterOutlined,
+  DownloadOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import { supabase } from "@/services/supabase/client";
 import { useAuthStore } from "@/store/auth.store";
 import BuyCreditsModal from "@/components/ui/wallet/BuyCreditsModal";
 
-const { Title, Text } = Typography;
-
 export default function WalletPage() {
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
   const userId = useAuthStore((state) => state.user?.id);
 
   const [wallet, setWallet] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
 
-  // Modal States
   const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
-  const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
+  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    if (userId) {
-      fetchWalletData();
-    }
+    if (userId) fetchWalletData();
   }, [userId]);
 
   const fetchWalletData = async () => {
     setLoading(true);
     try {
-      // 1. Reconcile wallet to ensure balance is 100% accurate from the ledger
       await supabase.rpc("reconcile_wallet", { p_user_id: userId });
-
-      // 2. Fetch updated wallet
       const { data: walletData } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", userId)
         .single();
-
       setWallet(walletData);
 
-      // 3. Fetch recent transactions
       const { data: txData } = await supabase
         .from("transactions")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50);
-
       setTransactions(txData || []);
     } catch (error) {
-      console.error("Error fetching wallet:", error);
       message.error("Failed to load wallet data.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🟢 SIMULATED PAYMENT FLOW (Will be replaced by Paystack later)
-  const handleRealPayment = async (
-    type: "fiat_deposit" | "credit_purchase"
-  ) => {
-    if (!paymentAmount || paymentAmount <= 0) {
-      message.warning("Please enter a valid amount.");
-      return;
-    }
-
+  const handleRealPayment = async () => {
+    if (!paymentAmount || paymentAmount <= 0)
+      return message.warning("Please enter a valid amount.");
     setProcessing(true);
-
     try {
       const user = useAuthStore.getState().user;
-
-      // 🟢 Point to bridge page with appropriate intent
-      const callbackUrl =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/dashboard/payment/processing?intent=${
-              type === "fiat_deposit" ? "add_funds" : "credit_purchase"
-            }`
-          : "https://yourdomain.com/dashboard/payment/processing?intent=add_funds";
-
-      const { data: intentData, error: intentError } =
-        await supabase.functions.invoke("create-payment-intent", {
+      const callbackUrl = `${window.location.origin}/dashboard/payment/processing?intent=add_funds`;
+      const { data, error } = await supabase.functions.invoke(
+        "create-payment-intent",
+        {
           body: {
             amount: paymentAmount,
             email: user?.email,
             callback_url: callbackUrl,
-            metadata: {
-              user_id: user?.id,
-              type: type,
-              credits_amount:
-                type === "credit_purchase" ? paymentAmount : undefined,
-            },
+            metadata: { user_id: user?.id, type: "fiat_deposit" },
           },
-        });
-
-      if (intentError) throw intentError;
-
-      window.location.href = intentData.authorizationUrl;
+        }
+      );
+      if (error) throw error;
+      window.location.href = data.authorizationUrl;
     } catch (error: any) {
-      console.error("Payment error:", error);
-      message.error("Failed to initialize payment. Please try again.");
+      message.error("Failed to initialize payment.");
       setProcessing(false);
     }
   };
-  // Helper to format currency (Naira)
-  const formatCurrency = (amount: number) => {
-    return `₦${Number(amount || 0).toLocaleString("en-NG", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
 
-  // Helper to get transaction display details
+  const formatCurrency = (amount: number) =>
+    `₦${Number(amount || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const getTxDetails = (type: string) => {
     switch (type) {
       case "fiat_deposit":
         return {
           icon: <PlusCircleOutlined />,
           title: "Fiat Deposit",
-          color: "text-green-600",
-          bg: "bg-green-50",
+          color: "text-success-emerald",
+          bg: "bg-success-emerald/10",
           sign: "+",
         };
       case "escrow_release":
         return {
           icon: <UnlockOutlined />,
           title: "Escrow Released",
-          color: "text-green-600",
-          bg: "bg-green-50",
+          color: "text-success-emerald",
+          bg: "bg-success-emerald/10",
           sign: "+",
         };
       case "escrow_refund":
         return {
           icon: <SwapOutlined />,
           title: "Escrow Refund",
-          color: "text-green-600",
-          bg: "bg-green-50",
+          color: "text-success-emerald",
+          bg: "bg-success-emerald/10",
           sign: "+",
         };
       case "credit_purchase":
         return {
           icon: <StarOutlined />,
           title: "Credits Purchased",
-          color: "text-green-600",
-          bg: "bg-green-50",
+          color: "text-success-emerald",
+          bg: "bg-success-emerald/10",
           sign: "+",
         };
-
       case "escrow_hold":
         return {
           icon: <LockOutlined />,
           title: "Escrow Funded",
-          color: "text-gray-600",
-          bg: "bg-gray-100",
+          color: "text-primary",
+          bg: "bg-primary/10",
           sign: "-",
         };
       case "withdrawal":
         return {
           icon: <BankOutlined />,
           title: "Withdrawal",
-          color: "text-gray-600",
-          bg: "bg-gray-100",
+          color: "text-error",
+          bg: "bg-error/10",
           sign: "-",
         };
       case "credit_spend":
         return {
           icon: <StarOutlined />,
           title: "Credits Spent",
-          color: "text-gray-600",
-          bg: "bg-gray-100",
+          color: "text-on-surface-variant",
+          bg: "bg-on-surface-variant/10",
           sign: "-",
         };
       case "platform_fee":
         return {
           icon: <PercentageOutlined />,
           title: "Platform Fee",
-          color: "text-gray-600",
-          bg: "bg-gray-100",
+          color: "text-on-surface-variant",
+          bg: "bg-on-surface-variant/10",
           sign: "-",
         };
-
       default:
         return {
           icon: <WalletOutlined />,
           title: "Transaction",
-          color: "text-gray-600",
-          bg: "bg-gray-100",
+          color: "text-on-surface-variant",
+          bg: "bg-on-surface-variant/10",
           sign: "",
         };
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return (
-          <Tag
-            icon={<CheckCircleOutlined />}
-            color="success"
-            className="!rounded-full !text-[10px] !uppercase !m-0 !border-0"
-          >
-            Completed
-          </Tag>
-        );
-      case "pending":
-        return (
-          <Tag
-            icon={<ClockCircleOutlined />}
-            color="warning"
-            className="!rounded-full !text-[10px] !uppercase !m-0 !border-0"
-          >
-            Pending
-          </Tag>
-        );
-      case "failed":
-        return (
-          <Tag
-            icon={<CloseCircleOutlined />}
-            color="error"
-            className="!rounded-full !text-[10px] !uppercase !m-0 !border-0"
-          >
-            Failed
-          </Tag>
-        );
-      default:
-        return (
-          <Tag className="!rounded-full !text-[10px] !uppercase !m-0 !border-0">
-            {status}
-          </Tag>
-        );
-    }
-  };
-
   if (loading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <Skeleton.Input active className="w-48 h-8 mb-4" />
+      <div className="p-10 max-w-5xl mx-auto space-y-8">
+        <Skeleton.Input active className="w-48 h-8 mb-4 rounded-lg!" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton.Button active className="!w-full !h-48 !rounded-2xl" />
-          <Skeleton.Button active className="!w-full !h-48 !rounded-2xl" />
+          <Skeleton.Button active className="!w-full !h-64 !rounded-2xl" />
+          <Skeleton.Button active className="!w-full !h-64 !rounded-2xl" />
         </div>
-        <Skeleton active paragraph={{ rows: 8 }} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <Title level={3} className="!text-gray-900 !mb-1">
-          Wallet
-        </Title>
-        <Text className="!text-gray-500">
-          Manage your balances and view transaction history.
-        </Text>
-      </div>
+    <div className="flex flex-col md:flex-row flex-1 min-h-[calc(100vh-64px)] overflow-hidden bg-surface">
+      {/* Left Pane: Balances & Promotions */}
+      <aside className="w-full md:w-[40%] flex-none p-4 md:p-10 overflow-y-auto border-r border-outline-variant/30 bg-surface">
+        <div className="space-y-8 max-w-lg md:max-w-2xl mx-auto md:mx-0">
+          <header>
+            <h1 className="font-manrope text-[32px] font-semibold text-primary leading-tight">
+              Wallet
+            </h1>
+            <p className="text-on-surface-variant font-inter text-base mt-2">
+              Manage your balances and view transaction history.
+            </p>
+          </header>
 
-      {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Fiat Balance */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-              <WalletOutlined className="text-xl text-gray-700" />
+          {/* Fiat Balance Card */}
+          <div className="bg-surface-glass backdrop-blur-glass border border-white/20 shadow-[var(--shadow-level-1)] p-8 rounded-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+                  Fiat Balance
+                </span>
+                <WalletOutlined className="text-2xl text-primary/40" />
+              </div>
+              <div className="mb-8">
+                <span className="font-manrope text-[48px] font-bold text-primary leading-none">
+                  {formatCurrency(wallet?.fiat_balance)}
+                </span>
+              </div>
+              <Button
+                type="primary"
+                block
+                size="large"
+                icon={<PlusCircleOutlined />}
+                onClick={() => setIsAddFundsOpen(true)}
+                className="rounded-lg! h-auto! py-3! bg-secondary! hover:bg-secondary/90! border-none! font-inter! text-[14px]! font-medium! shadow-lg! shadow-secondary/20!"
+              >
+                Add Funds
+              </Button>
             </div>
-            <Text className="!text-gray-500 !font-medium uppercase text-xs! tracking-wide">
-              Fiat Balance
-            </Text>
           </div>
-          <Title level={3} className="!text-gray-900 !mb-6">
-            {formatCurrency(wallet?.fiat_balance)}
-          </Title>
-          <Button
-            type="primary"
-            icon={<PlusCircleOutlined />}
-            onClick={() => setIsAddFundsOpen(true)}
-            className="!bg-gray-900 hover:!bg-gray-800 !border-0 !text-white !rounded-xl !h-11 !w-full !font-medium !shadow-none"
-          >
-            Add Funds
-          </Button>
-        </div>
 
-        {/* Credit Balance */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-              <StarOutlined className="text-xl text-gray-700" />
+          {/* Credit Balance Card */}
+          <div className="bg-surface-glass backdrop-blur-glass border border-white/20 shadow-[var(--shadow-level-1)] p-8 rounded-2xl relative overflow-hidden group border-primary/10!">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant">
+                  Credit Balance
+                </span>
+                <StarOutlined className="text-2xl text-secondary/40" />
+              </div>
+              <div className="mb-8">
+                <span className="font-manrope text-[48px] font-bold text-primary leading-none">
+                  {Number(wallet?.credit_balance || 0).toLocaleString("en-NG", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="font-manrope text-[24px] text-on-surface-variant ml-2">
+                  Credits
+                </span>
+              </div>
+              <Button
+                block
+                size="large"
+                icon={<StarOutlined />}
+                onClick={() => setShowBuyCreditsModal(true)}
+                className="rounded-lg! h-auto! py-3! border-2! border-primary! text-primary! hover:bg-primary/5! bg-transparent! font-inter! text-[14px]! font-medium!"
+              >
+                Buy Credits
+              </Button>
             </div>
-            <Text className="!text-gray-500 !font-medium uppercase text-xs! tracking-wide">
-              Credit Balance
-            </Text>
           </div>
-          <Title level={3} className="!text-gray-900 !mb-6">
-            {Number(wallet?.credit_balance || 0).toLocaleString("en-NG", {
-              minimumFractionDigits: 2,
-            })}{" "}
-            Credits
-          </Title>
-          <Button
-            icon={<StarOutlined />}
-            onClick={() => setShowBuyCreditsModal(true)}
-            className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-900 rounded-xl h-11 w-full font-medium shadow-none"
-          >
-            Buy Credits
-          </Button>
-        </div>
-      </div>
 
-      {/* Transaction History */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <Title level={5} className="!text-gray-900 !mb-0">
-            Recent Transactions
-          </Title>
-        </div>
-
-        <div className="divide-y divide-gray-100">
-          {transactions.length === 0 ? (
-            <div className="p-12 text-center">
-              <Empty
-                description="No transactions yet"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
+          {/* Promo Banner */}
+          <section className="bg-surface-glass backdrop-blur-glass border border-white/20 shadow-[var(--shadow-level-1)] rounded-2xl overflow-hidden flex flex-col">
+            <div className="h-40 relative bg-gradient-to-br from-primary/20 to-secondary/20" />
+            <div className="p-6 flex flex-col justify-center">
+              <span className="text-secondary font-inter text-[12px] font-semibold uppercase tracking-wider mb-2">
+                Smart Savings
+              </span>
+              <h3 className="font-manrope text-[24px] font-semibold text-primary mb-2 leading-tight">
+                Automate your service payments
+              </h3>
+              <p className="text-on-surface-variant font-inter text-base mb-4 leading-relaxed">
+                Users who keep a minimum credit balance of 1,000 credits enjoy
+                10% off all transaction fees across the Luminous Marketplace.
+              </p>
+              <a
+                href="#"
+                className="text-primary font-inter text-[14px] font-medium flex items-center gap-2 hover:underline"
+              >
+                Learn more about Luminous Rewards{" "}
+                <ArrowRightOutlined className="text-[18px]" />
+              </a>
             </div>
-          ) : (
-            transactions.map((tx) => {
-              const details = getTxDetails(tx.type);
-              const isPositive = details.sign === "+";
+          </section>
+        </div>
+      </aside>
 
-              return (
-                <div
-                  key={tx.id}
-                  className="p-4 md:p-5 flex items-center gap-4 hover:bg-gray-50/50 transition-colors"
-                >
-                  <div
-                    className={`w-10 h-10 rounded-full ${details.bg} flex items-center justify-center flex-shrink-0`}
-                  >
-                    <span className={`text-lg! ${details.color}`}>
-                      {details.icon}
-                    </span>
-                  </div>
+      {/* Right Pane: Transaction History */}
+      <main className="w-full md:w-[60%] flex-1 bg-surface-container-lowest overflow-y-auto">
+        <div className="p-4 md:p-10 max-w-4xl mx-auto flex-1 flex flex-col">
+          <section className="flex-1 space-y-6">
+            <div className="flex items-center justify-between sticky top-0 bg-surface-container-lowest/80 backdrop-blur-md py-4 z-20 border-b border-outline-variant/20 mb-6">
+              <h2 className="font-manrope text-[24px] font-semibold text-primary">
+                Transaction History
+              </h2>
+              <div className="flex gap-2">
+                <button className="bg-surface border border-outline-variant/30 text-primary px-4 py-2 rounded-lg font-inter text-[14px] font-medium hover:bg-primary/5 transition-all flex items-center gap-2">
+                  <FilterOutlined className="text-[16px]" /> Filter
+                </button>
+                <button className="bg-surface border border-outline-variant/30 text-primary px-4 py-2 rounded-lg font-inter text-[14px] font-medium hover:bg-primary/5 transition-all flex items-center gap-2">
+                  <DownloadOutlined className="text-[16px]" /> Statement
+                </button>
+              </div>
+            </div>
 
-                  <div className="flex-1 min-w-0">
-                    <Text
-                      strong
-                      className="!text-gray-900 block text-sm! truncate"
-                    >
-                      {details.title}
-                    </Text>
-                    <Text className="!text-gray-400 text-xs! block truncate">
-                      {tx.description || "No description"} •{" "}
-                      {new Date(tx.created_at).toLocaleDateString("en-NG", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </Text>
-                  </div>
-
-                  <div className="hidden sm:block">
-                    {getStatusBadge(tx.status)}
-                  </div>
-
-                  <div className="text-right flex-shrink-0">
-                    <Text
-                      strong
-                      className={`block text-sm ${
-                        isPositive ? "text-green-600" : "text-gray-900"
-                      }`}
-                    >
-                      {details.sign}
-                      {formatCurrency(tx.amount)}
-                    </Text>
-                    {tx.currency === "credit" && (
-                      <Text className="!text-gray-400 text-[10px] uppercase">
-                        Credits
-                      </Text>
-                    )}
-                  </div>
+            <div className="space-y-3">
+              {transactions.length === 0 ? (
+                <div className="py-20">
+                  <Empty description="No transactions yet" />
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+              ) : (
+                transactions.map((tx) => {
+                  const details = getTxDetails(tx.type);
+                  const isPositive = details.sign === "+";
+                  const statusColor =
+                    tx.status === "completed"
+                      ? "bg-success-emerald/10 text-success-emerald"
+                      : tx.status === "pending"
+                        ? "bg-primary-container/10 text-primary"
+                        : "bg-error/10 text-error";
 
-      {/* 🟢 ADD FUNDS MODAL */}
+                  return (
+                    <div
+                      key={tx.id}
+                      className="group relative bg-surface border border-outline-variant/20 rounded-2xl p-5 transition-all hover:border-primary/40 hover:shadow-md cursor-pointer overflow-hidden"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`w-12 h-12 rounded-full ${details.bg} flex items-center justify-center text-xl flex-none ${details.color}`}
+                        >
+                          {details.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-inter text-[14px] font-medium text-on-surface truncate">
+                              {details.title}
+                            </h4>
+                            <span
+                              className={`font-inter text-[14px] font-semibold ${isPositive ? "text-success-emerald" : "text-on-surface-variant"}`}
+                            >
+                              {details.sign}
+                              {tx.currency === "credit"
+                                ? `${Math.abs(tx.amount).toFixed(2)} Credits`
+                                : formatCurrency(tx.amount)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <p className="text-on-surface-variant font-inter text-[12px] font-medium">
+                              {tx.description || "Transaction"} •{" "}
+                              {new Date(tx.created_at).toLocaleDateString(
+                                "en-NG",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </p>
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${statusColor}`}
+                            >
+                              {tx.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Details on Hover */}
+                      <div className="max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 group-hover:mt-5 transition-all duration-300 overflow-hidden border-t border-outline-variant/10 pt-4 flex gap-8">
+                        <div>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-bold tracking-wider">
+                            Reference ID
+                          </p>
+                          <p className="font-inter text-[14px] font-mono text-on-surface mt-1">
+                            {tx.id.slice(0, 8).toUpperCase()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-bold tracking-wider">
+                            Type
+                          </p>
+                          <p className="font-inter text-[14px] text-on-surface mt-1">
+                            {details.title}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* Add Funds Modal */}
       <Modal
         title="Add Funds to Wallet"
         open={isAddFundsOpen}
         onCancel={() => setIsAddFundsOpen(false)}
         footer={null}
         destroyOnHidden
+        styles={{
+          body: { borderRadius: "16px", padding: "32px" },
+        }}
       >
         <div className="py-4">
-          <Text className="!text-gray-500 block mb-4">
+          <p className="font-inter text-base text-on-surface-variant block mb-6">
             Enter the amount you want to deposit via Paystack.
-          </Text>
+          </p>
           <InputNumber
             size="large"
-            className="!w-full !h-12 !rounded-lg !text-lg"
+            className="w-full! h-12! rounded-lg! text-lg! font-inter!"
             placeholder="e.g. 10000"
             min={100}
             value={paymentAmount}
@@ -443,62 +420,21 @@ export default function WalletPage() {
             size="large"
             block
             loading={processing}
-            onClick={() => handleRealPayment("fiat_deposit")}
-            className="!mt-6 !h-12 !rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !font-medium"
+            onClick={handleRealPayment}
+            className="mt-6! h-12! rounded-lg! bg-secondary! hover:bg-secondary/90! border-none! font-inter! text-[14px]! font-medium!"
           >
             Proceed to Paystack
           </Button>
-          <Text className="!text-gray-400 !text-xs block text-center mt-4">
-            *Currently simulating payment for testing. Paystack integration
-            coming soon.
-          </Text>
+          <p className="text-on-surface-variant text-xs block text-center mt-4 font-inter">
+            *Currently simulating payment for testing.
+          </p>
         </div>
       </Modal>
 
-      {/* 🟢 BUY CREDITS MODAL */}
-      <Modal
-        title="Buy aykau Credits"
-        open={isBuyCreditsOpen}
-        onCancel={() => setIsBuyCreditsOpen(false)}
-        footer={null}
-        destroyOnHidden
-      >
-        <div className="py-4">
-          <Text className="!text-gray-500 block mb-4">
-            Credits can be used to boost your job posts or pay for premium
-            features.
-          </Text>
-          <InputNumber
-            size="large"
-            className="!w-full !h-12 !rounded-lg !text-lg"
-            placeholder="e.g. 500"
-            min={10}
-            value={paymentAmount}
-            onChange={(val) => setPaymentAmount(val)}
-            suffix="Credits"
-          />
-          <Button
-            type="primary"
-            size="large"
-            block
-            loading={processing}
-            onClick={() => handleRealPayment("credit_purchase")}
-            className="!mt-6 !h-12 !rounded-lg !bg-gray-900 hover:!bg-gray-800 !border-0 !font-medium"
-          >
-            Purchase Credits
-          </Button>
-          <Text className="!text-gray-400 !text-xs block text-center mt-4">
-            *Currently simulating payment for testing. Paystack integration
-            coming soon.
-          </Text>
-        </div>
-      </Modal>
       <BuyCreditsModal
         open={showBuyCreditsModal}
         onClose={() => setShowBuyCreditsModal(false)}
-        onSuccess={() => {
-          fetchWalletData();
-        }}
+        onSuccess={fetchWalletData}
       />
     </div>
   );

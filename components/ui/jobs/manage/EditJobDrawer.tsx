@@ -1,18 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-  Drawer,
-  Form,
-  Input,
-  Button,
-  Select,
-  Typography,
-  Divider,
-  App,
-  Checkbox,
-  Spin,
-} from "antd";
+import { Drawer, Form, Input, Button, Select, App, Checkbox } from "antd";
 import {
   FileTextOutlined,
   WalletOutlined,
@@ -33,22 +22,8 @@ import {
 } from "@/lib/helpers/categories";
 
 const { TextArea } = Input;
-const { Text } = Typography;
 
-// ─────────────────────────────────────────────────────────────
-// DYNAMIC FIELDS (Still hardcoded - these are form-specific)
-// ─────────────────────────────────────────────────────────────
-
-const DYNAMIC_FIELDS: Record<
-  string,
-  {
-    name: string;
-    label: string;
-    type: "text" | "number" | "date" | "select";
-    options?: { value: string; label: string }[];
-    placeholder?: string;
-  }[]
-> = {
+const DYNAMIC_FIELDS: Record<string, any[]> = {
   cleaning: [
     {
       name: "numRooms",
@@ -146,30 +121,24 @@ export default function EditJobDrawer({
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
     null
   );
-
-  // 🟢 Fetch categories from database
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const load = async () => {
       try {
-        const data = await fetchCategoriesWithSubcategories();
-        setCategories(data);
-      } catch (error) {
-        console.error("Failed to load categories:", error);
+        setCategories(await fetchCategoriesWithSubcategories());
       } finally {
         setLoadingCategories(false);
       }
     };
-    loadCategories();
+    load();
   }, []);
 
   useEffect(() => {
     if (open && job) {
       setSelectedCategory(job.category || null);
       setSelectedSubcategory(job.subcategory || null);
-
       form.setFieldsValue({
         title: job.title,
         category: job.category,
@@ -183,37 +152,25 @@ export default function EditJobDrawer({
         preferred_date: job.preferred_date,
         contact_methods: job.contact_methods || [],
         access_notes: job.access_notes,
-        ...(job.custom_details || {}), // Spread dynamic fields
+        ...(job.custom_details || {}),
       });
     }
   }, [open, job, form]);
 
-  // 🟢 Get subcategories for selected category from database
   const getSubcategoryOptions = () => {
     if (!selectedCategory) return [];
-    const category = categories.find((c) => c.value === selectedCategory);
     return (
-      category?.subcategories.map((s) => ({
-        value: s.value,
-        label: s.label,
-      })) || []
+      categories
+        .find((c) => c.value === selectedCategory)
+        ?.subcategories.map((s) => ({ value: s.value, label: s.label })) || []
     );
   };
 
-  const dynamicFields = useMemo(() => {
-    if (!selectedSubcategory) return [];
-    return DYNAMIC_FIELDS[selectedSubcategory] || [];
-  }, [selectedSubcategory]);
-
-  const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
-    setSelectedSubcategory(null);
-    form.setFieldsValue({ subcategory: undefined });
-  };
-
-  const handleSubcategoryChange = (value: string) => {
-    setSelectedSubcategory(value);
-  };
+  const dynamicFields = useMemo(
+    () =>
+      selectedSubcategory ? DYNAMIC_FIELDS[selectedSubcategory] || [] : [],
+    [selectedSubcategory]
+  );
 
   const handleSave = async (values: any) => {
     const knownFields = [
@@ -230,27 +187,10 @@ export default function EditJobDrawer({
       "contact_methods",
       "access_notes",
     ];
-
-    // Extract dynamic fields into custom_details JSON
     const customDetails = Object.fromEntries(
       Object.entries(values).filter(([key]) => !knownFields.includes(key))
     );
-
-    const payload = {
-      title: values.title,
-      category: values.category,
-      subcategory: values.subcategory,
-      description: values.description,
-      service_type: values.service_type,
-      address: values.address,
-      budget: values.budget,
-      urgency: values.urgency,
-      frequency: values.frequency,
-      preferred_date: values.preferred_date,
-      contact_methods: values.contact_methods,
-      access_notes: values.access_notes,
-      custom_details: customDetails,
-    };
+    const payload = { ...values, custom_details: customDetails };
 
     const { data, error } = await supabase
       .from("job_requests")
@@ -258,72 +198,397 @@ export default function EditJobDrawer({
       .eq("id", job.id)
       .select()
       .single();
-
-    if (error) {
-      message.error("Failed to update job. Please try again.");
-    } else {
+    if (error) message.error("Failed to update job.");
+    else {
       message.success("Job updated successfully!");
       onUpdated(data);
       onClose();
     }
   };
 
-  if (loadingCategories) {
-    return (
-      <Drawer
-        open={open}
-        onClose={onClose}
-        size={520}
-        closable={false}
-        styles={{
-          body: { padding: "24px" },
-        }}
-      >
-        <div className="flex justify-center items-center py-20">
-          <Spin size="large" />
-        </div>
-      </Drawer>
-    );
-  }
+  // ✅ Shared classes for inputs
+  const inputClasses =
+    "w-full! bg-surface-container! border-none! rounded-lg! h-10! px-3! font-inter! text-[14px]! focus:ring-1! focus:ring-primary/30!";
+  // ✅ Shared classes for selects
+  const selectClasses =
+    "w-full! [&_.ant-select-selector]:bg-surface-container! [&_.ant-select-selector]:border-none! [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:shadow-none! [&_.ant-select-selector]:font-inter! [&_.ant-select-selector]:text-[14px]!";
 
   return (
     <Drawer
-      title={
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-            <FileTextOutlined style={{ fontSize: 18 }} />
-          </div>
-          <div>
-            <div className="text-base font-semibold text-gray-900 leading-tight">
-              Edit Job Details
-            </div>
-            <Text type="secondary" className="text-xs font-normal">
-              Update your job post information
-            </Text>
-          </div>
-        </div>
-      }
-      size={520}
-      onClose={onClose}
       open={open}
+      onClose={onClose}
+      width={520}
       closable={false}
       styles={{
-        body: { padding: "24px", paddingBottom: "24px", background: "#fafafa" },
-        header: { borderBottom: "1px solid #f3f4f6", padding: "16px 24px" },
+        body: { padding: 0, background: "var(--surface-container-low)" },
+        header: { display: "none" },
       }}
-      extra={
-        <Button
-          type="text"
-          icon={<CloseOutlined className="text-gray-400" />}
-          onClick={onClose}
-          className="w-8! h-8! flex items-center justify-center rounded-full hover:bg-gray-100 hover:text-gray-600"
-        />
-      }
-      footer={
-        <div className="flex justify-end gap-3 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+    >
+      <div className="h-full flex flex-col">
+        {/* Custom Header */}
+        <div className="p-6 border-b border-outline-variant/20 bg-surface-container-lowest flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center">
+              <FileTextOutlined className="text-primary text-[18px]" />
+            </div>
+            <div>
+              <h3 className="font-manrope text-[20px] font-semibold text-primary leading-tight">
+                Edit Job Details
+              </h3>
+              <p className="font-inter text-[14px] text-on-surface-variant">
+                Update your job post information
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
+          >
+            <CloseOutlined className="text-[16px]" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20 shadow-[var(--shadow-level-1)]">
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSave}
+              requiredMark={false}
+              className="space-y-2"
+            >
+              {/* SECTION: Basic Info */}
+              <div className="mb-8">
+                <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4 block">
+                  Basic Information
+                </h4>
+                <Form.Item
+                  name="title"
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                      Job Title
+                    </span>
+                  }
+                  rules={[{ required: true, message: "Please enter a title" }]}
+                  className="mb-4!"
+                >
+                  <Input
+                    placeholder="e.g. Interior Designer Needed..."
+                    className={inputClasses}
+                  />
+                </Form.Item>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Form.Item
+                    name="category"
+                    label={
+                      <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                        Category
+                      </span>
+                    }
+                    rules={[{ required: true, message: "Select category" }]}
+                    className="mb-0!"
+                  >
+                    <Select
+                      placeholder="Select"
+                      options={categories.map((c) => ({
+                        value: c.value,
+                        label: `${c.icon || ""} ${c.label}`,
+                      }))}
+                      onChange={(v) => {
+                        setSelectedCategory(v);
+                        setSelectedSubcategory(null);
+                        form.setFieldsValue({ subcategory: undefined });
+                      }}
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }
+                      className={selectClasses}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="subcategory"
+                    label={
+                      <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                        Subcategory
+                      </span>
+                    }
+                    rules={[{ required: true, message: "Select subcategory" }]}
+                    className="mb-0!"
+                  >
+                    <Select
+                      placeholder="Select"
+                      options={getSubcategoryOptions()}
+                      disabled={!selectedCategory}
+                      onChange={setSelectedSubcategory}
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }
+                      className={selectClasses}
+                    />
+                  </Form.Item>
+                </div>
+              </div>
+
+              <div className="h-px bg-outline-variant/30 my-8" />
+
+              {/* SECTION: Description */}
+              <div className="mb-8">
+                <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4 block">
+                  Job Description
+                </h4>
+                <Form.Item
+                  name="description"
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                      Details
+                    </span>
+                  }
+                  rules={[
+                    { required: true, message: "Please enter a description" },
+                    { min: 20, message: "At least 20 characters" },
+                  ]}
+                  className="mb-0!"
+                >
+                  <TextArea
+                    rows={5}
+                    placeholder="Describe the job requirements in detail..."
+                    showCount
+                    maxLength={2000}
+                    className="w-full! bg-surface-container! border-none! rounded-lg! py-3! px-3! font-inter! text-[14px! resize-none! focus:ring-1! focus:ring-primary/30!"
+                  />
+                </Form.Item>
+              </div>
+
+              <div className="h-px bg-outline-variant/30 my-8" />
+
+              {/* SECTION: Location */}
+              <div className="mb-8">
+                <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4 block">
+                  Location & Service Type
+                </h4>
+                <Form.Item
+                  name="service_type"
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                      Service Location Type
+                    </span>
+                  }
+                  className="mb-4!"
+                >
+                  <Select
+                    placeholder="Select"
+                    options={[
+                      { value: "home", label: "🏠 At my home" },
+                      { value: "business", label: "🏢 At my business" },
+                      { value: "remote", label: "💻 Remote / Online" },
+                      { value: "other", label: "📍 Other location" },
+                    ]}
+                    className={selectClasses}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="address"
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                      Address / Landmark
+                    </span>
+                  }
+                  className="mb-0!"
+                >
+                  <Input
+                    placeholder="e.g. Near Shoprite, Victoria Island"
+                    className={inputClasses}
+                  />
+                </Form.Item>
+              </div>
+
+              <div className="h-px bg-outline-variant/30 my-8" />
+
+              {/* SECTION: Budget & Time */}
+              <div className="mb-8">
+                <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4 block">
+                  Budget & Timeline
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Form.Item
+                    name="budget"
+                    label={
+                      <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                        Budget
+                      </span>
+                    }
+                    rules={[{ required: true, message: "Select budget" }]}
+                    className="mb-0!"
+                  >
+                    <Select
+                      placeholder="Select"
+                      options={[
+                        { value: "under-10k", label: "Under ₦10k" },
+                        { value: "10k-50k", label: "₦10k – ₦50k" },
+                        { value: "50k-100k", label: "₦50k – ₦100k" },
+                        { value: "100k-500k", label: "₦100k – ₦500k" },
+                        { value: "500k+", label: "₦500k+" },
+                        { value: "flexible", label: "Flexible" },
+                      ]}
+                      className={selectClasses}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="urgency"
+                    label={
+                      <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                        Urgency
+                      </span>
+                    }
+                    rules={[{ required: true, message: "Select urgency" }]}
+                    className="mb-0!"
+                  >
+                    <Select
+                      placeholder="Select"
+                      options={[
+                        { value: "asap", label: "🔥 ASAP" },
+                        { value: "this-week", label: "📅 This Week" },
+                        { value: "this-month", label: "🗓️ This Month" },
+                        { value: "planning", label: "✨ Flexible" },
+                      ]}
+                      className={selectClasses}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <Form.Item
+                    name="frequency"
+                    label={
+                      <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                        Frequency
+                      </span>
+                    }
+                    className="mb-0!"
+                  >
+                    <Select
+                      placeholder="Select"
+                      allowClear
+                      options={[
+                        { value: "once", label: "One-time" },
+                        { value: "weekly", label: "Weekly" },
+                        { value: "biweekly", label: "Every 2 weeks" },
+                        { value: "monthly", label: "Monthly" },
+                      ]}
+                      className={selectClasses}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="preferred_date"
+                    label={
+                      <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                        Preferred Date
+                      </span>
+                    }
+                    className="mb-0!"
+                  >
+                    <Input type="date" className={inputClasses} />
+                  </Form.Item>
+                </div>
+              </div>
+
+              <div className="h-px bg-outline-variant/30 my-8" />
+
+              {/* SECTION: Contact & Access */}
+              <div className="mb-8">
+                <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4 block">
+                  Contact & Access
+                </h4>
+                <Form.Item
+                  name="contact_methods"
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                      Preferred Contact Methods
+                    </span>
+                  }
+                  className="mb-4!"
+                >
+                  <Checkbox.Group
+                    options={[
+                      { label: "Email", value: "email" },
+                      { label: "Phone Call", value: "phone" },
+                      { label: "WhatsApp", value: "whatsapp" },
+                    ]}
+                    className="flex flex-col gap-2"
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="access_notes"
+                  label={
+                    <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                      Access & Instructions
+                    </span>
+                  }
+                  className="mb-0!"
+                >
+                  <TextArea
+                    rows={3}
+                    placeholder="e.g. Parking is available at the back..."
+                    className="w-full! bg-surface-container! border-none! rounded-lg! py-3! px-3! font-inter! text-[14px! resize-none! focus:ring-1! focus:ring-primary/30!"
+                  />
+                </Form.Item>
+              </div>
+
+              {/* SECTION: Dynamic Fields */}
+              {dynamicFields.length > 0 && (
+                <>
+                  <div className="h-px bg-outline-variant/30 my-8" />
+                  <div>
+                    <h4 className="font-inter text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-4 block">
+                      Additional Details
+                    </h4>
+                    {dynamicFields.map((field) => (
+                      <Form.Item
+                        key={field.name}
+                        name={field.name}
+                        label={
+                          <span className="font-inter text-[14px] font-medium text-on-surface mb-1.5 block">
+                            {field.label}
+                          </span>
+                        }
+                        className="mb-4!"
+                      >
+                        {field.type === "select" ? (
+                          <Select
+                            placeholder={field.placeholder || "Select"}
+                            options={field.options}
+                            allowClear
+                            className={selectClasses}
+                          />
+                        ) : field.type === "date" ? (
+                          <Input type="date" className={inputClasses} />
+                        ) : (
+                          <Input
+                            type={field.type}
+                            placeholder={field.placeholder}
+                            className={inputClasses}
+                          />
+                        )}
+                      </Form.Item>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Form>
+          </div>
+        </div>
+
+        {/* Sticky Footer */}
+        <div className="p-4 bg-surface-container-lowest border-t border-outline-variant/20 flex justify-end gap-3 shrink-0">
           <Button
             onClick={onClose}
-            className="rounded-lg px-5 h-10 font-medium"
+            className="rounded-lg! h-10! px-6! border-outline-variant! text-on-surface-variant! hover:border-primary! hover:text-primary! bg-transparent! font-inter! text-[14px]! font-medium!"
           >
             Cancel
           </Button>
@@ -331,366 +596,11 @@ export default function EditJobDrawer({
             type="primary"
             onClick={() => form.submit()}
             icon={<CheckOutlined />}
-            className="rounded-lg px-6 h-10 font-medium bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 shadow-sm"
+            className="rounded-lg! h-10! px-6! bg-secondary! hover:bg-secondary/90! border-none! text-on-secondary! font-inter! text-[14px]! font-medium!"
           >
             Save Changes
           </Button>
         </div>
-      }
-    >
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 space-y-6">
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSave}
-          requiredMark={false}
-          className="space-y-1"
-        >
-          {/* SECTION: Basic Info */}
-          <div>
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
-              Basic Information
-            </Text>
-            <Form.Item
-              name="title"
-              label={
-                <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <TagOutlined className="text-gray-400" /> Job Title
-                </span>
-              }
-              rules={[{ required: true, message: "Please enter a title" }]}
-              className="mb-4!"
-            >
-              <Input
-                placeholder="e.g. Interior Designer Needed..."
-                className="rounded-lg! h-10! hover:border-blue-300 focus:border-blue-500"
-              />
-            </Form.Item>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Form.Item
-                name="category"
-                label={
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <InfoCircleOutlined className="text-gray-400" /> Category
-                  </span>
-                }
-                rules={[{ required: true, message: "Select category" }]}
-                className="mb-0!"
-              >
-                <Select
-                  placeholder="Select"
-                  options={categories.map((c) => ({
-                    value: c.value,
-                    label: `${c.icon || ""} ${c.label}`,
-                  }))}
-                  onChange={handleCategoryChange}
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="subcategory"
-                label={
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <InfoCircleOutlined className="text-gray-400" /> Subcategory
-                  </span>
-                }
-                rules={[{ required: true, message: "Select subcategory" }]}
-                className="mb-0!"
-              >
-                <Select
-                  placeholder="Select"
-                  options={getSubcategoryOptions()}
-                  disabled={!selectedCategory}
-                  onChange={handleSubcategoryChange}
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-                />
-              </Form.Item>
-            </div>
-          </div>
-
-          <Divider className="my-6! border-gray-100!" />
-
-          {/* SECTION: Description */}
-          <div>
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
-              Job Description
-            </Text>
-            <Form.Item
-              name="description"
-              label={
-                <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <FileTextOutlined className="text-gray-400" /> Details
-                </span>
-              }
-              rules={[
-                { required: true, message: "Please enter a description" },
-                {
-                  min: 20,
-                  message: "Description must be at least 20 characters",
-                },
-              ]}
-              className="mb-0!"
-            >
-              <TextArea
-                rows={5}
-                placeholder="Describe the job requirements in detail..."
-                showCount
-                maxLength={2000}
-                className="rounded-lg! resize-none! hover:border-blue-300 focus:border-blue-500"
-              />
-            </Form.Item>
-          </div>
-
-          <Divider className="my-6! border-gray-100!" />
-
-          {/* SECTION: Location */}
-          <div>
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
-              Location & Service Type
-            </Text>
-            <Form.Item
-              name="service_type"
-              label={
-                <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <EnvironmentOutlined className="text-gray-400" /> Service
-                  Location Type
-                </span>
-              }
-              className="mb-4!"
-            >
-              <Select
-                placeholder="Select"
-                options={[
-                  { value: "home", label: "🏠 At my home" },
-                  { value: "business", label: "🏢 At my business" },
-                  { value: "remote", label: "💻 Remote / Online" },
-                  { value: "other", label: "📍 Other location" },
-                ]}
-                className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="address"
-              label={
-                <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <EnvironmentOutlined className="text-gray-400" /> Address /
-                  Landmark
-                </span>
-              }
-              className="mb-0!"
-            >
-              <Input
-                placeholder="e.g. Near Shoprite, Victoria Island"
-                className="rounded-lg! h-10! hover:border-blue-300 focus:border-blue-500"
-              />
-            </Form.Item>
-          </div>
-
-          <Divider className="my-6! border-gray-100!" />
-
-          {/* SECTION: Budget & Time */}
-          <div>
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
-              Budget & Timeline
-            </Text>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Form.Item
-                name="budget"
-                label={
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <WalletOutlined className="text-gray-400" /> Budget
-                  </span>
-                }
-                rules={[{ required: true, message: "Select budget" }]}
-                className="mb-0!"
-              >
-                <Select
-                  placeholder="Select"
-                  options={[
-                    { value: "under-10k", label: "Under ₦10k" },
-                    { value: "10k-50k", label: "₦10k – ₦50k" },
-                    { value: "50k-100k", label: "₦50k – ₦100k" },
-                    { value: "100k-500k", label: "₦100k – ₦500k" },
-                    { value: "500k+", label: "₦500k+" },
-                    { value: "flexible", label: "Flexible" },
-                  ]}
-                  className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="urgency"
-                label={
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <ThunderboltOutlined className="text-gray-400" /> Urgency
-                  </span>
-                }
-                rules={[{ required: true, message: "Select urgency" }]}
-                className="mb-0!"
-              >
-                <Select
-                  placeholder="Select"
-                  options={[
-                    { value: "asap", label: "🔥 ASAP" },
-                    { value: "this-week", label: "📅 This Week" },
-                    { value: "this-month", label: "🗓️ This Month" },
-                    { value: "planning", label: "✨ Flexible" },
-                  ]}
-                  className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-                />
-              </Form.Item>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <Form.Item
-                name="frequency"
-                label={
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <CalendarOutlined className="text-gray-400" /> Frequency
-                  </span>
-                }
-                className="mb-0!"
-              >
-                <Select
-                  placeholder="Select"
-                  allowClear
-                  options={[
-                    { value: "once", label: "One-time" },
-                    { value: "weekly", label: "Weekly" },
-                    { value: "biweekly", label: "Every 2 weeks" },
-                    { value: "monthly", label: "Monthly" },
-                  ]}
-                  className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="preferred_date"
-                label={
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <CalendarOutlined className="text-gray-400" /> Preferred
-                    Date
-                  </span>
-                }
-                className="mb-0!"
-              >
-                <Input
-                  type="date"
-                  className="rounded-lg! h-10! hover:border-blue-300 focus:border-blue-500"
-                />
-              </Form.Item>
-            </div>
-          </div>
-
-          <Divider className="my-6! border-gray-100!" />
-
-          {/* SECTION: Contact & Access */}
-          <div>
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
-              Contact & Access
-            </Text>
-            <Form.Item
-              name="contact_methods"
-              label={
-                <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <ContactsOutlined className="text-gray-400" /> Preferred
-                  Contact Methods
-                </span>
-              }
-              className="mb-4!"
-            >
-              <Checkbox.Group
-                options={[
-                  { label: "Email", value: "email" },
-                  { label: "Phone Call", value: "phone" },
-                  { label: "WhatsApp", value: "whatsapp" },
-                ]}
-                className="flex flex-col gap-2"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="access_notes"
-              label={
-                <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <KeyOutlined className="text-gray-400" /> Access &
-                  Instructions
-                </span>
-              }
-              className="mb-0!"
-            >
-              <TextArea
-                rows={3}
-                placeholder="e.g. Parking is available at the back, ring the bell twice..."
-                className="rounded-lg! resize-none! hover:border-blue-300 focus:border-blue-500"
-              />
-            </Form.Item>
-          </div>
-
-          {/* SECTION: Dynamic Fields */}
-          {dynamicFields.length > 0 && (
-            <>
-              <Divider className="my-6! border-gray-100!" />
-              <div>
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
-                  Additional Details
-                </Text>
-                {dynamicFields.map((field) => (
-                  <Form.Item
-                    key={field.name}
-                    name={field.name}
-                    label={
-                      <span className="text-sm font-semibold text-gray-800">
-                        {field.label}
-                      </span>
-                    }
-                    className="mb-4!"
-                  >
-                    {field.type === "select" ? (
-                      <Select
-                        placeholder={field.placeholder || "Select"}
-                        options={field.options}
-                        allowClear
-                        className="w-full [&_.ant-select-selector]:rounded-lg! [&_.ant-select-selector]:h-10! [&_.ant-select-selector]:border-gray-200!"
-                      />
-                    ) : field.type === "number" ? (
-                      <Input
-                        type="number"
-                        placeholder={field.placeholder}
-                        className="rounded-lg! h-10! hover:border-blue-300 focus:border-blue-500"
-                      />
-                    ) : field.type === "date" ? (
-                      <Input
-                        type="date"
-                        className="rounded-lg! h-10! hover:border-blue-300 focus:border-blue-500"
-                      />
-                    ) : (
-                      <Input
-                        placeholder={field.placeholder}
-                        className="rounded-lg! h-10! hover:border-blue-300 focus:border-blue-500"
-                      />
-                    )}
-                  </Form.Item>
-                ))}
-              </div>
-            </>
-          )}
-        </Form>
       </div>
     </Drawer>
   );

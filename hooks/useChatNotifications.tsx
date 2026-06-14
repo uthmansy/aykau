@@ -42,9 +42,15 @@ export function useChatNotifications() {
     fetchUnreadCount();
     if (!userId) return;
 
+    // ✅ THE FIX: Generate a unique ID for this specific subscription instance.
+    // This prevents Supabase from returning a cached, already-subscribed channel
+    // when Next.js/Turbopack remounts the component.
+    const uniqueSubId = Math.random().toString(36).substring(2, 9);
+    const channelName = `chat-notifications-realtime:${uniqueSubId}`;
+
     // 2. Realtime listener for Chat
     const channel = supabase
-      .channel("chat-notifications-realtime")
+      .channel(channelName) // <--- Use the unique name here!
       // Listen for NEW messages
       .on(
         "postgres_changes",

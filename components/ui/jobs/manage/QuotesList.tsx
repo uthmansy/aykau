@@ -1,61 +1,75 @@
-// components/jobs/manage/QuotesList.tsx
 "use client";
 
 import { useState } from "react";
-import { Avatar, Typography, Badge, Empty } from "antd";
+import { Avatar, Empty } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import QuoteDetailModal from "./QuoteDetailModal";
 
-const { Text, Title } = Typography;
+// 1. Define proper types to replace 'any'
+interface Artisan {
+  avatar_url?: string;
+  full_name?: string;
+  username?: string;
+}
+
+interface Quote {
+  id: string | number;
+  status: "pending" | "responded" | "accepted" | "declined" | string;
+  is_viewed?: boolean;
+  created_at: string;
+  quoted_price?: number | string;
+  message?: string;
+  artisan?: Artisan;
+}
 
 interface Props {
-  quotes: any[];
+  quotes: Quote[];
   jobId: string;
   onQuoteAction: () => void;
 }
 
 export default function QuotesList({ quotes, jobId, onQuoteAction }: Props) {
-  const [selectedQuote, setSelectedQuote] = useState<any>(null);
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "blue";
-      case "responded":
-        return "orange";
-      case "accepted":
-        return "green";
-      case "declined":
-        return "red";
-      default:
-        return "default";
-    }
-  };
-
-  const openModal = (quote: any) => {
+  const openModal = (quote: Quote) => {
     setSelectedQuote(quote);
     setIsModalOpen(true);
+  };
 
-    // Mark as viewed when opened
-    // supabase.from('job_quotes').update({ is_viewed: true }).eq('id', quote.id)
+  // Helper to get styles safely
+  const getStatusStyles = (status: string) => {
+    const styles = {
+      pending: { bg: "bg-primary/10", text: "text-primary" },
+      responded: { bg: "bg-warning/10", text: "text-warning" },
+      accepted: {
+        bg: "bg-success-emerald/10",
+        text: "text-success-emerald",
+      },
+      declined: { bg: "bg-error/10", text: "text-error" },
+    };
+
+    // Use type assertion or check if key exists
+    return (
+      styles[status as keyof typeof styles] || {
+        bg: "bg-on-surface-variant/10",
+        text: "text-on-surface-variant",
+      }
+    );
   };
 
   return (
     <>
       {/* Sticky Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-[calc(100vh-160px)] sticky top-6 overflow-hidden">
+      <div className="bg-surface-container-lowest rounded-2xl shadow-[var(--shadow-level-1)] border border-outline-variant/20 flex flex-col h-[calc(100vh-160px)] sticky top-24 overflow-hidden">
         {/* Inbox Header */}
-        <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center shrink-0">
-          <div>
-            <Title level={5} className="mb-0! text-gray-900">
-              Quotes
-            </Title>
-            <Text type="secondary" className="text-xs">
-              {quotes.length} received
-            </Text>
-          </div>
-          {/* Future: Add a filter/sort dropdown here */}
+        <div className="p-5 border-b border-outline-variant/20 bg-surface-container-lowest shrink-0">
+          <h3 className="font-manrope text-[20px] font-semibold text-primary">
+            Quotes
+          </h3>
+          <p className="font-inter text-[14px] text-on-surface-variant">
+            {quotes.length} received
+          </p>
         </div>
 
         {/* Scrollable List Area */}
@@ -68,84 +82,55 @@ export default function QuotesList({ quotes, jobId, onQuoteAction }: Props) {
               />
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div>
               {quotes.map((quote) => {
                 const isUnread = !quote.is_viewed;
+                // 2. Use the helper function to avoid indexing errors
+                const statusStyles = getStatusStyles(quote.status);
 
                 return (
                   <div
                     key={quote.id}
                     onClick={() => openModal(quote)}
-                    className={`flex gap-3 p-4 cursor-pointer transition-all group
-                      ${
-                        isUnread
-                          ? "bg-blue-50/40 hover:bg-blue-50/70"
-                          : "hover:bg-gray-50"
-                      }`}
+                    className={`flex gap-4 p-5 cursor-pointer transition-all border-b border-outline-variant/10 last:border-b-0
+                                        ${isUnread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-surface-container"}`}
                   >
-                    {/* Avatar with Unread Dot */}
-                    <Badge dot={isUnread} offset={[-4, 42]} color="#3b82f6">
-                      <Avatar
-                        src={quote.artisan?.avatar_url}
-                        icon={<UserOutlined />}
-                        size={48}
-                        className="border-2 border-white shadow-sm shrink-0"
-                      />
-                    </Badge>
-
-                    {/* Content */}
+                    <Avatar
+                      src={quote.artisan?.avatar_url}
+                      icon={<UserOutlined />}
+                      size={48}
+                      className="ring-2 ring-outline-variant/20 shrink-0 bg-surface-container-lowest!"
+                    />
                     <div className="flex-1 min-w-0">
-                      {/* Top Row: Name & Time */}
                       <div className="flex justify-between items-center mb-1">
                         <span
-                          className={`truncate block max-w-32.5 ${
-                            isUnread
-                              ? "font-bold text-gray-900"
-                              : "font-medium text-gray-700"
-                          }`}
+                          className={`truncate block max-w-[150px] font-inter text-[14px] ${isUnread ? "font-semibold text-on-surface" : "font-medium text-on-surface-variant"}`}
                         >
                           {quote.artisan?.full_name ||
                             quote.artisan?.username ||
                             "Artisan"}
                         </span>
-                        <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                        <span className="font-inter text-[12px] text-outline whitespace-nowrap ml-2">
                           {new Date(quote.created_at).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
                         </span>
                       </div>
-
-                      {/* Middle Row: Price & Status */}
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-sm font-bold text-gray-500">
+                        <span className="font-manrope text-[16px] font-semibold text-on-surface">
                           {quote.quoted_price
                             ? `₦${Number(quote.quoted_price).toLocaleString()}`
                             : "Negotiable"}
                         </span>
                         <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide
-                            ${
-                              quote.status === "pending"
-                                ? "bg-blue-50 text-blue-600"
-                                : quote.status === "responded"
-                                ? "bg-orange-50 text-orange-600"
-                                : quote.status === "accepted"
-                                ? "bg-green-50 text-green-600"
-                                : "bg-red-50 text-red-600"
-                            }`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusStyles.bg} ${statusStyles.text}`}
                         >
                           {quote.status}
                         </span>
                       </div>
-
-                      {/* Bottom Row: Message Snippet */}
                       <p
-                        className={`text-xs line-clamp-1 m-0 ${
-                          isUnread
-                            ? "text-gray-700 font-medium"
-                            : "text-gray-500"
-                        }`}
+                        className={`font-inter text-[14px] line-clamp-1 m-0 ${isUnread ? "text-on-surface-variant font-medium" : "text-outline"}`}
                       >
                         {quote.message}
                       </p>
@@ -158,7 +143,6 @@ export default function QuotesList({ quotes, jobId, onQuoteAction }: Props) {
         </div>
       </div>
 
-      {/* Detail Modal */}
       {selectedQuote && (
         <QuoteDetailModal
           open={isModalOpen}

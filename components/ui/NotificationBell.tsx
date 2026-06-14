@@ -1,4 +1,3 @@
-// components/layout/NotificationBell.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -8,12 +7,10 @@ import { BellOutlined, CheckOutlined } from "@ant-design/icons";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useAuthStore } from "@/store/auth.store";
 
-// Helper to format timestamps cleanly
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
   if (seconds < 60) return "Just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -28,22 +25,17 @@ export default function NotificationBell() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const userId = user?.id;
-
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
     useRealtimeNotifications(userId);
-
   const { notification } = App.useApp();
   const prevCountRef = useRef(unreadCount);
-
-  // 1. Control the dropdown open state
   const [isOpen, setIsOpen] = useState(false);
 
-  // Show Toast when a new notification arrives in realtime
+  // Toast on new notification
   useEffect(() => {
     if (userId && unreadCount > prevCountRef.current && unreadCount > 0) {
       const latest = notifications[0];
       if (latest) {
-        // 🟢 Dynamic Toast Styling based on Notification Type
         const positiveTypes = [
           "funds_released",
           "wallet_credited",
@@ -63,43 +55,40 @@ export default function NotificationBell() {
         const notifyMethod = positiveTypes.includes(latest.type)
           ? notification.success
           : warningTypes.includes(latest.type)
-          ? notification.warning
-          : notification.info;
+            ? notification.warning
+            : notification.info;
 
         notifyMethod({
-          message: latest.title, // AntD uses 'message' for the bold title
+          message: latest.title,
           description: latest.message,
           placement: "topRight",
           duration: 5,
-          className: "!rounded-xl !border-gray-200 !shadow-lg", // Extra sleek styling
         });
       }
     }
     prevCountRef.current = unreadCount;
   }, [unreadCount, notifications, notification, userId]);
-  // 2. Handle click: Mark as read, close dropdown instantly, then navigate
+
   const handleItemClick = (item: any) => {
-    if (!item.is_read) {
-      markAsRead(item.id);
-    }
+    if (!item.is_read) markAsRead(item.id);
     if (item.link) {
-      setIsOpen(false); // Instant feedback: dropdown closes immediately
+      setIsOpen(false);
       router.push(item.link);
     }
   };
 
-  // 3. Ultra-clean Dropdown Content
+  // Dropdown content – fully converted to Tailwind
   const dropdownContent = (
-    <div className="w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200/60 overflow-hidden ring-1 ring-black/5">
+    <div className="w-80 max-w-[calc(100vw-32px)] bg-surface-container-lowest rounded-lg shadow-[var(--shadow-level-2)] border border-outline-variant overflow-hidden font-inter">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
-        <span className="text-sm font-semibold text-gray-900 tracking-tight">
+      <div className="flex items-center justify-between py-3 px-4 border-b border-outline-variant bg-surface-container-lowest">
+        <span className="text-sm font-semibold text-foreground">
           Notifications
         </span>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="text-[11px] font-medium text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1 px-2 py-1 rounded-md hover:bg-gray-100"
+            className="text-xs font-medium text-outline bg-transparent border-none cursor-pointer flex items-center gap-1 py-1 px-2 rounded-[6px] transition-all hover:bg-surface-container hover:text-primary"
           >
             <CheckOutlined className="text-[10px]" />
             Mark all read
@@ -108,57 +97,48 @@ export default function NotificationBell() {
       </div>
 
       {/* List */}
-      <div className="max-h-112 overflow-y-auto">
+      <div className="max-h-[448px] overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-              <BellOutlined className="text-xl text-gray-300" />
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="w-12 h-12 bg-surface-container-low rounded-full flex items-center justify-center mb-3">
+              <BellOutlined className="text-xl text-outline-variant" />
             </div>
-            <p className="text-sm font-medium text-gray-900">All caught up!</p>
-            <p className="text-xs text-gray-400 mt-1">
-              You have no new notifications.
+            <p className="text-sm font-medium text-foreground m-0">
+              All caught up!
             </p>
+            <p className="text-xs text-outline mt-1">No new notifications</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100/80">
+          <div className="border-t border-surface-container">
             {notifications.map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleItemClick(item)}
-                className={`flex items-start gap-3 p-4 transition-colors cursor-pointer
-                  ${
-                    !item.is_read
-                      ? "bg-gray-50/60 hover:bg-gray-100/80"
-                      : "bg-white hover:bg-gray-50"
-                  }
-                `}
+                className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-surface-container ${
+                  item.is_read
+                    ? "bg-surface-container-lowest hover:bg-surface-container-high"
+                    : "bg-surface-container-low hover:bg-surface-container-high"
+                }`}
               >
                 <div className="flex-1 min-w-0">
-                  {/* Title Row with Unread Dot */}
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-1.5 mb-1">
                     {!item.is_read && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-900 shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                     )}
                     <p
-                      className={`text-[13px] leading-tight truncate transition-colors
-                        ${
-                          !item.is_read
-                            ? "font-semibold text-gray-900"
-                            : "font-medium text-gray-600"
-                        }
-                      `}
+                      className={`text-[0.8125rem] leading-[1.4] m-0 ${
+                        !item.is_read
+                          ? "font-semibold text-foreground"
+                          : "font-medium text-on-surface-variant"
+                      }`}
                     >
                       {item.title}
                     </p>
                   </div>
-
-                  {/* Message */}
-                  <p className="text-[13px] text-gray-500 line-clamp-2 leading-snug mb-1.5">
+                  <p className="text-xs text-outline mb-1.5 leading-[1.4] line-clamp-2">
                     {item.message}
                   </p>
-
-                  {/* Relative Timestamp */}
-                  <p className="text-[11px] text-gray-400 font-medium">
+                  <p className="text-[0.6875rem] text-outline-variant m-0">
                     {formatTimeAgo(item.created_at)}
                   </p>
                 </div>
@@ -173,20 +153,35 @@ export default function NotificationBell() {
   if (!userId) return null;
 
   return (
-    // 4. Bind the open state to the Dropdown
     <Dropdown
       open={isOpen}
       onOpenChange={setIsOpen}
-      popupRender={() => dropdownContent}
+      // ✅ 1. Changed from popupRender to dropdownRender
+      dropdownRender={() => dropdownContent}
       trigger={["click"]}
       placement="bottomRight"
+      // ✅ 2. Strip AntD's default wrapper background, shadow, and padding
+      // so your inner div's bg-surface-container-lowest and shadow take over completely.
+      overlayClassName="bg-transparent! shadow-none! p-0!"
     >
-      <Badge count={unreadCount}>
+      <Badge
+        count={unreadCount}
+        size="small"
+        styles={{
+          root: { boxShadow: "none" },
+          indicator: {
+            backgroundColor: "var(--secondary)",
+            boxShadow: "none",
+            fontFamily: "var(--font-inter), sans-serif",
+            fontWeight: 600,
+          },
+        }}
+      >
         <Avatar
           icon={<BellOutlined />}
           shape="circle"
-          size="small"
-          className="bg-slate-700! text-slate-200! ring-2 ring-white/10"
+          size={32}
+          className="bg-surface-container! text-on-surface-variant! transition-opacity"
         />
       </Badge>
     </Dropdown>

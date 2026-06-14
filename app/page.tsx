@@ -1,7 +1,7 @@
 // app/page.tsx
 "use client";
 
-import { Button, Typography, Card, Tag } from "antd";
+import { Button, Typography, Card, Tag, Space, Flex } from "antd";
 import {
   CheckCircleOutlined,
   MessageOutlined,
@@ -16,81 +16,151 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "#fbf8ff" }}
+    >
       <LandingHeader />
 
-      <main className="flex-grow">
+      <main style={{ flexGrow: 1 }}>
         {/* 1. Hero Section */}
-        <section className="relative pt-20 pb-32 px-6 overflow-hidden">
-          <div className="max-w-4xl mx-auto text-center">
+        <section
+          style={{
+            paddingTop: "5rem",
+            paddingBottom: "8rem",
+            paddingLeft: "1.5rem",
+            paddingRight: "1.5rem",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{ maxWidth: "896px", margin: "0 auto", textAlign: "center" }}
+          >
             <Tag
-              color="default"
-              className="!px-3 !py-1 !rounded-full !text-sm !font-medium !border-gray-200 !text-gray-600 mb-6"
+              style={{
+                padding: "0.25rem 0.75rem",
+                borderRadius: 9999,
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                border: "1px solid #c7c5d3",
+                background: "transparent",
+                color: "#464651",
+                marginBottom: "1.5rem",
+              }}
             >
               🚀 The #1 Marketplace for Home Services
             </Tag>
+
             <Title
               level={1}
-              className="!text-5xl md:!text-6xl !font-extrabold !text-gray-900 !leading-tight !mb-6 tracking-tight"
+              style={{
+                fontSize: "3rem",
+                fontWeight: 700,
+                color: "#1b1b20",
+                lineHeight: 1.2,
+                marginBottom: "1.5rem",
+                letterSpacing: "-0.02em",
+              }}
+              className="manrope-heading" // global class for Manrope
             >
-              Connect with Top-Rated <br className="hidden md:block" />
-              <span className="text-gray-500">Artisans in Your Area</span>
+              Connect with Top-Rated{" "}
+              <span style={{ color: "#777682" }}>Artisans in Your Area</span>
             </Title>
-            <Paragraph className="!text-xl !text-gray-500 !max-w-2xl !mx-auto !mb-10 !leading-relaxed">
+
+            <Paragraph
+              style={{
+                fontSize: "1.125rem",
+                color: "#464651",
+                maxWidth: "672px",
+                margin: "0 auto 2rem auto",
+                lineHeight: 1.5,
+              }}
+            >
               Get your home projects done right with aykau. Find verified
               professionals, receive transparent quotes, and chat securely—all
               in one place.
             </Paragraph>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Space size="middle" wrap style={{ justifyContent: "center" }}>
               <Button
                 type="primary"
                 size="large"
-                className="!bg-gray-900 hover:!bg-gray-800 !border-0 !rounded-xl !h-12 !px-8 !text-base !font-semibold flex items-center gap-2"
+                icon={<ArrowRightOutlined />}
+                iconPosition="end"
+                style={{
+                  height: 48,
+                  padding: "0 1.5rem",
+                  fontSize: "1rem",
+                  fontWeight: 500,
+                  borderRadius: 12,
+                }}
               >
-                Post a Job for Free <ArrowRightOutlined />
+                Post a Job for Free
               </Button>
+
               <Button
                 size="large"
-                className="!rounded-xl !h-12 !px-8 !text-base !font-semibold !border-gray-200 hover:!border-gray-400 hover:!text-gray-900"
+                style={{
+                  height: 48,
+                  padding: "0 1.5rem",
+                  fontSize: "1rem",
+                  fontWeight: 500,
+                  borderRadius: 12,
+                  borderColor: "#15196c",
+                  color: "#15196c",
+                  background: "transparent",
+                }}
               >
                 Become an Artisan
               </Button>
-            </div>
+            </Space>
 
             {/* Trust Badges */}
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-gray-400">
-              <div className="flex items-center gap-2">
-                <CheckCircleOutlined className="text-green-500" />
-                <Text className="!text-sm !font-medium">Verified Pros</Text>
-              </div>
-              <div className="flex items-center gap-2">
-                <StarFilled className="text-yellow-500" />
-                <Text className="!text-sm !font-medium">
+            <Flex
+              gap="middle"
+              wrap
+              justify="center"
+              style={{ marginTop: "3rem", color: "#777682" }}
+            >
+              <Space size="small">
+                <CheckCircleOutlined style={{ color: "#10B981" }} />
+                <Text style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                  Verified Pros
+                </Text>
+              </Space>
+              <Space size="small">
+                <StarFilled style={{ color: "#f5b042" }} />
+                <Text style={{ fontSize: "0.875rem", fontWeight: 500 }}>
                   4.9/5 Average Rating
                 </Text>
-              </div>
-              <div className="flex items-center gap-2">
-                <WalletOutlined className="text-gray-600" />
-                <Text className="!text-sm !font-medium">
+              </Space>
+              <Space size="small">
+                <WalletOutlined style={{ color: "#a53b15" }} />
+                <Text style={{ fontSize: "0.875rem", fontWeight: 500 }}>
                   Transparent Pricing
                 </Text>
-              </div>
-            </div>
+              </Space>
+            </Flex>
           </div>
         </section>
 
         {/* 2. Features Section */}
-        <section className="bg-gray-50 py-24 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+        <section style={{ background: "#f5f2fa", padding: "6rem 1.5rem" }}>
+          <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
+            <div style={{ textAlign: "center", marginBottom: "4rem" }}>
               <Title
                 level={2}
-                className="!text-3xl !font-bold !text-gray-900 !mb-4"
+                style={{
+                  fontSize: "1.875rem",
+                  fontWeight: 600,
+                  color: "#1b1b20",
+                  marginBottom: "1rem",
+                }}
+                className="manrope-heading"
               >
                 Everything you need to get the job done
               </Title>
-              <Text className="!text-lg !text-gray-500">
+              <Text style={{ fontSize: "1.125rem", color: "#464651" }}>
                 We've simplified the process of hiring and working with
                 professionals on aykau.
               </Text>
@@ -98,19 +168,42 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <Card
-                className="!border-0 !shadow-sm !rounded-2xl hover:shadow-md transition-shadow duration-300"
-                styles={{ body: { padding: "32px" } }}
+                style={{
+                  border: "none",
+                  borderRadius: 16,
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+                  background: "#ffffff",
+                }}
+                bodyStyle={{ padding: "2rem" }}
               >
-                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-6">
-                  <CheckCircleOutlined className="text-2xl text-blue-600" />
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    background: "#e0e0ff",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <CheckCircleOutlined
+                    style={{ fontSize: "1.5rem", color: "#15196c" }}
+                  />
                 </div>
                 <Title
                   level={4}
-                  className="!text-lg !font-bold !text-gray-900 !mb-3"
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
+                    color: "#1b1b20",
+                    marginBottom: "0.5rem",
+                  }}
                 >
                   Verified Professionals
                 </Title>
-                <Text className="!text-gray-500 !leading-relaxed">
+                <Text style={{ color: "#464651", lineHeight: 1.5 }}>
                   Every artisan undergoes a strict verification process,
                   including ID checks and skill assessments, so you can hire
                   with confidence.
@@ -118,38 +211,82 @@ export default function Home() {
               </Card>
 
               <Card
-                className="!border-0 !shadow-sm !rounded-2xl hover:shadow-md transition-shadow duration-300"
-                styles={{ body: { padding: "32px" } }}
+                style={{
+                  border: "none",
+                  borderRadius: 16,
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+                  background: "#ffffff",
+                }}
+                bodyStyle={{ padding: "2rem" }}
               >
-                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-6">
-                  <MessageOutlined className="text-2xl text-purple-600" />
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    background: "#ffdbd0",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <MessageOutlined
+                    style={{ fontSize: "1.5rem", color: "#a53b15" }}
+                  />
                 </div>
                 <Title
                   level={4}
-                  className="!text-lg !font-bold !text-gray-900 !mb-3"
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                  }}
                 >
                   Real-Time Chat
                 </Title>
-                <Text className="!text-gray-500 !leading-relaxed">
+                <Text style={{ color: "#464651", lineHeight: 1.5 }}>
                   Discuss project details, share photos, and negotiate terms
                   directly through our secure, built-in messaging system.
                 </Text>
               </Card>
 
               <Card
-                className="!border-0 !shadow-sm !rounded-2xl hover:shadow-md transition-shadow duration-300"
-                styles={{ body: { padding: "32px" } }}
+                style={{
+                  border: "none",
+                  borderRadius: 16,
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+                  background: "#ffffff",
+                }}
+                bodyStyle={{ padding: "2rem" }}
               >
-                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-6">
-                  <WalletOutlined className="text-2xl text-green-600" />
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    background: "#ecfdf5",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <WalletOutlined
+                    style={{ fontSize: "1.5rem", color: "#10B981" }}
+                  />
                 </div>
                 <Title
                   level={4}
-                  className="!text-lg !font-bold !text-gray-900 !mb-3"
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                  }}
                 >
                   Transparent Quotes
                 </Title>
-                <Text className="!text-gray-500 !leading-relaxed">
+                <Text style={{ color: "#464651", lineHeight: 1.5 }}>
                   Receive detailed, itemized quotes from multiple artisans.
                   Compare prices and reviews to find the perfect fit for your
                   budget.
@@ -160,18 +297,25 @@ export default function Home() {
         </section>
 
         {/* 3. How It Works Section */}
-        <section className="py-24 px-6">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16">
+        <section style={{ padding: "6rem 1.5rem" }}>
+          <div style={{ maxWidth: "1024px", margin: "0 auto" }}>
+            <div style={{ textAlign: "center", marginBottom: "4rem" }}>
               <Title
                 level={2}
-                className="!text-3xl !font-bold !text-gray-900 !mb-4"
+                style={{
+                  fontSize: "1.875rem",
+                  fontWeight: 600,
+                  color: "#1b1b20",
+                }}
+                className="manrope-heading"
               >
                 How it works
               </Title>
             </div>
 
-            <div className="space-y-12">
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "3rem" }}
+            >
               {[
                 {
                   step: "01",
@@ -188,48 +332,101 @@ export default function Home() {
                   title: "Hire and chat",
                   desc: "Compare quotes, message your favorite artisan to clarify details, and hire them with one click.",
                 },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-col md:flex-row items-start gap-6 md:gap-10"
+              ].map((item) => (
+                <Flex
+                  key={item.step}
+                  gap="middle"
+                  align="flex-start"
+                  style={{ flexWrap: "wrap" }}
                 >
-                  <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gray-900 text-white flex items-center justify-center text-xl font-bold">
+                  <div
+                    style={{
+                      flexShrink: 0,
+                      width: 64,
+                      height: 64,
+                      background: "#15196c",
+                      borderRadius: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.5rem",
+                      fontWeight: 700,
+                      color: "#ffffff",
+                    }}
+                  >
                     {item.step}
                   </div>
-                  <div className="pt-2">
+                  <div style={{ paddingTop: "0.5rem" }}>
                     <Title
                       level={3}
-                      className="!text-xl !font-bold !text-gray-900 !mb-2"
+                      style={{
+                        fontSize: "1.25rem",
+                        fontWeight: 600,
+                        color: "#1b1b20",
+                        marginBottom: "0.5rem",
+                      }}
                     >
                       {item.title}
                     </Title>
-                    <Text className="!text-lg !text-gray-500 !leading-relaxed">
+                    <Text
+                      style={{
+                        fontSize: "1rem",
+                        color: "#464651",
+                        lineHeight: 1.5,
+                      }}
+                    >
                       {item.desc}
                     </Text>
                   </div>
-                </div>
+                </Flex>
               ))}
             </div>
           </div>
         </section>
 
         {/* 4. CTA Section */}
-        <section className="bg-gray-900 py-20 px-6">
-          <div className="max-w-4xl mx-auto text-center">
+        <section style={{ background: "#0F172A", padding: "5rem 1.5rem" }}>
+          <div
+            style={{ maxWidth: "896px", margin: "0 auto", textAlign: "center" }}
+          >
             <Title
               level={2}
-              className="!text-3xl md:!text-4xl !font-bold !text-white !mb-6"
+              style={{
+                fontSize: "1.875rem",
+                fontWeight: 600,
+                color: "#ffffff",
+                marginBottom: "1.5rem",
+              }}
+              className="manrope-heading"
             >
               Ready to get your project started?
             </Title>
-            <Text className="!text-lg !text-gray-400 !block !mb-10 !max-w-2xl !mx-auto">
+            <Text
+              style={{
+                fontSize: "1.125rem",
+                color: "#c7c5d3",
+                display: "block",
+                marginBottom: "2rem",
+                maxWidth: "672px",
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
               Join thousands of homeowners and artisans who trust aykau to get
               the job done right.
             </Text>
             <Button
               type="primary"
               size="large"
-              className="!bg-white !text-gray-900 hover:!bg-gray-100 !border-0 !rounded-xl !h-12 !px-8 !text-base !font-semibold"
+              style={{
+                height: 48,
+                padding: "0 2rem",
+                fontSize: "1rem",
+                fontWeight: 500,
+                borderRadius: 12,
+                background: "#a53b15",
+                borderColor: "#a53b15",
+              }}
             >
               Create a Free Account
             </Button>

@@ -1,26 +1,206 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* ===== Brand Colors ===== */
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
 
-@theme inline {
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+
+  /* ===== Surfaces & Text ===== */
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-glass: var(--surface-glass);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-highest: var(--surface-container-highest);
+
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-primary: var(--on-primary);
+  --color-on-secondary: var(--on-secondary);
+  --color-on-error: var(--on-error);
+  --color-on-tertiary: var(--on-tertiary);
+
+  /* ===== Functional Colors ===== */
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+
+  /* ===== Spacing & Layout ===== */
+  --spacing-container-max: var(--container-max);
+  --spacing-margin-desktop: var(--margin-desktop);
+  --spacing-margin-mobile: var(--margin-mobile);
+
+  /* ===== Border Radius (Overrides Tailwind defaults) ===== */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  /* ===== Effects ===== */
+  --blur-glass: var(--backdrop-blur-glass);
+
+  /* ===== Typography ===== */
+  --font-manrope: var(--font-manrope), system-ui, sans-serif;
+  --font-inter: var(--font-inter), system-ui, sans-serif;
 }
 
+/* Design System Tokens (Light mode only – no automatic dark mode) */
+:root {
+  /* Surfaces */
+  --background: #fbf8ff;
+  --surface: #fbf8ff;
+  --surface-dim: #dcd9e0;
+  --surface-bright: #fbf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f2fa;
+  --surface-container: #f0ecf4;
+  --surface-container-high: #eae7ef;
+  --surface-container-highest: #e4e1e9;
+
+  /* On-surface colors */
+  --foreground: #1b1b20;
+  --on-surface: #1b1b20;
+  --on-surface-variant: #464651;
+
+  /* Primary (Navy) */
+  --primary: #15196c;
+  --primary-container: #2d3282;
+  --on-primary-container: #999ff5;
+  --primary-fixed: #e0e0ff;
+  --primary-fixed-dim: #bfc2ff;
+  --on-primary-fixed: #070963;
+
+  /* Secondary (Coral Orange) */
+  --secondary: #a53b15;
+  --secondary-container: #ff7d52;
+  --on-secondary-container: #6d1d00;
+  --secondary-fixed: #ffdbd0;
+  --secondary-fixed-dim: #ffb59e;
+  --on-secondary-fixed: #3a0b00;
+
+  /* Tertiary (Purple) */
+  --tertiary: #2f0077;
+  --tertiary-container: #4900ae;
+  --on-tertiary-container: #b395ff;
+
+  /* Functional */
+  --success: #10b981;
+  --error: #ba1a1a;
+  --warning: #f97316;
+
+  /* Outlines & borders */
+  --outline: #777682;
+  --outline-variant: #c7c5d3;
+
+  /* Glassmorphism */
+  --surface-glass: rgba(255, 255, 255, 0.7);
+  --backdrop-blur-glass: 12px;
+
+  /* Spacing (8px base unit) */
+  --spacing-unit: 8px;
+  --container-max: 1440px;
+  --gutter: 24px;
+  --margin-desktop: 40px;
+  --margin-mobile: 16px;
+
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius-default: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-level-0: none;
+  --shadow-level-1: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-level-2: 0 10px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Remove automatic dark mode – design system is light mode only */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Keep same light colors – design system doesn't support dark mode */
+    --background: #fbf8ff;
+    --foreground: #1b1b20;
   }
 }
 
+/* Global typography */
 body {
-  /* background: var(--background); */
+  background: var(--background);
   color: var(--foreground);
-  /* font-family: Arial, Helvetica, sans-serif; */
+  font-family:
+    var(--font-inter),
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Headings use Manrope */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.manrope-heading {
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+/* Utility classes for glassmorphism */
+.glass-surface {
+  background: var(--surface-glass);
+  backdrop-filter: blur(var(--backdrop-blur-glass));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+}
+
+/* Optional: Helper classes for spacing (Tailwind already provides, but you can use these as fallback) */
+.spacing-unit {
+  margin: calc(var(--spacing-unit) * 1);
+  padding: calc(var(--spacing-unit) * 1);
+}
+
+/* Ensure Ant Design components inherit the correct fonts */
+.ant-typography,
+.ant-btn,
+.ant-input,
+.ant-select,
+.ant-card,
+.ant-menu,
+.ant-tabs {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5,
+.ant-typography h6,
+h1.ant-typography,
+h2.ant-typography,
+h3.ant-typography,
+h4.ant-typography,
+h5.ant-typography,
+h6.ant-typography {
+  font-family: var(--font-manrope), system-ui, sans-serif;
 }

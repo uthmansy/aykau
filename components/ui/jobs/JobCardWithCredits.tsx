@@ -49,8 +49,6 @@ export default function JobCardWithCredits({
   return (
     <JobCard
       job={job}
-      showActions={showActions}
-      variant={variant}
       isUnlocked={isUnlocked}
       creditCost={creditCost}
       isArtisanViewer={userRole === "artisan" && job.customer_id !== userId}
