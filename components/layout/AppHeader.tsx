@@ -59,6 +59,11 @@ export default function AppHeader() {
     { key: "jobs", label: "Jobs", path: "/dashboard/jobs" },
     { key: "settings", label: "Settings", path: "/dashboard/settings" },
     { key: "wallet", label: "Wallet", path: "/dashboard/wallet" },
+    {
+      key: "withdrawals",
+      label: "Withdrawals",
+      path: "/dashboard/withdrawals",
+    },
   ];
 
   const profileMenuItems = [
