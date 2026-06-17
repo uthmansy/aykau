@@ -37,7 +37,8 @@ export async function fetchJobs({
     `,
       { count: "exact" }
     )
-    .eq("status", filters.status || "open");
+    .eq("status", filters.status || "open")
+    .eq("source", "public_post");
 
   // 🔍 Full-text search (uses search_vector index)
   if (filters.search?.trim()) {

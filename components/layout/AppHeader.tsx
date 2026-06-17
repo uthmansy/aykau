@@ -18,6 +18,7 @@ import {
   BellOutlined,
   MenuOutlined,
   CloseOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/services/auth/auth.service";
@@ -47,6 +48,7 @@ export default function AppHeader() {
     }
     if (key === "profile") router.push("/profile");
     if (key === "settings") router.push("/dashboard/settings");
+    if (key === "withdrawals") router.push("/dashboard/withdrawals");
   };
 
   const navItems = [
@@ -57,19 +59,18 @@ export default function AppHeader() {
       path: "/dashboard/my-requests",
     },
     { key: "jobs", label: "Jobs", path: "/dashboard/jobs" },
-    { key: "settings", label: "Settings", path: "/dashboard/settings" },
     { key: "wallet", label: "Wallet", path: "/dashboard/wallet" },
-    {
-      key: "withdrawals",
-      label: "Withdrawals",
-      path: "/dashboard/withdrawals",
-    },
   ];
 
   const profileMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Profile" },
     { key: "settings", icon: <SettingOutlined />, label: "Settings" },
     { type: "divider" as const },
+    {
+      key: "withdrawals",
+      label: "Withdrawals",
+      icon: <WalletOutlined />,
+    },
     { key: "logout", icon: <LogoutOutlined />, danger: true, label: "Logout" },
   ];
 
