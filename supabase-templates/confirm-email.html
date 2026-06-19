@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm Your Email</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f6f9fc;
+      font-family:
+        -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto,
+        &quot;Helvetica Neue&quot;, Ubuntu, sans-serif;
+    "
+  >
+    <table role="presentation" style="width: 100%; border-collapse: collapse">
+      <tr>
+        <td align="center" style="padding: 40px 0">
+          <table
+            role="presentation"
+            style="
+              width: 600px;
+              border-collapse: collapse;
+              background-color: #ffffff;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <!-- Logo -->
+            <tr>
+              <td style="padding: 32px 48px 0">
+                <h1
+                  style="
+                    margin: 0;
+                    font-size: 28px;
+                    font-weight: bold;
+                    color: #15196c;
+                    letter-spacing: -0.02em;
+                  "
+                >
+                  Aykau
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Heading -->
+            <tr>
+              <td style="padding: 32px 48px 0">
+                <h2
+                  style="
+                    margin: 0;
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #1a1a1a;
+                  "
+                >
+                  Welcome to Aykau!
+                </h2>
+              </td>
+            </tr>
+
+            <!-- Body Text -->
+            <tr>
+              <td style="padding: 16px 48px 0">
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 16px;
+                    line-height: 1.5;
+                    color: #4a4a4a;
+                  "
+                >
+                  Thanks for signing up! To get started, please confirm your
+                  email address by clicking the button below.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA Button -->
+            <tr>
+              <td style="padding: 24px 48px">
+                <a
+                  href="{{ .SiteURL }}/auth/confirm?token={{ .Token }}"
+                  style="
+                    display: block;
+                    background-color: #15196c;
+                    color: #ffffff;
+                    text-decoration: none;
+                    text-align: center;
+                    font-size: 16px;
+                    font-weight: bold;
+                    padding: 16px 32px;
+                    border-radius: 8px;
+                  "
+                >
+                  Confirm Email Address
+                </a>
+              </td>
+            </tr>
+
+            <!-- Additional Info -->
+            <tr>
+              <td style="padding: 0 48px">
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 16px;
+                    line-height: 1.5;
+                    color: #4a4a4a;
+                  "
+                >
+                  This helps us ensure the security of your account and lets you
+                  access all features of the platform.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Expiry Notice -->
+            <tr>
+              <td style="padding: 16px 48px 0">
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 14px;
+                    color: #6c757d;
+                    font-style: italic;
+                  "
+                >
+                  If you didn't create an account with Aykau, you can safely
+                  ignore this email.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td style="padding: 32px 48px">
+                <hr
+                  style="border: none; border-top: 1px solid #e9ecef; margin: 0"
+                />
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 0 48px 32px">
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    color: #6c757d;
+                    line-height: 1.5;
+                  "
+                >
+                  You're receiving this email because you signed up for an Aykau
+                  account.
+                </p>
+                <p
+                  style="
+                    margin: 8px 0 0;
+                    font-size: 11px;
+                    color: #9ca3af;
+                    text-align: center;
+                  "
+                >
+                  © 2024 Aykau. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

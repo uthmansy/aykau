@@ -24,9 +24,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/services/auth/auth.service";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect
 import NotificationBell from "../ui/NotificationBell";
 import ChatBell from "../ui/chat/ChatBell";
+import { useAuthStore } from "@/store/auth.store";
+import { supabase } from "@/services/supabase/client";
 
 const { Header } = Layout;
 
@@ -35,6 +37,9 @@ export default function AppHeader() {
   const { message } = App.useApp();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // State to hold the avatar URL from the profiles table
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
 
   const handleMenuClick = async ({ key }: { key: string }) => {
     if (key === "logout") {
@@ -76,6 +81,36 @@ export default function AppHeader() {
 
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + "/");
+
+  const user = useAuthStore((s) => s.user);
+
+  // Fetch profile data when user ID changes
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) {
+        setProfileAvatar(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("avatar_url") // Select only what is needed
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+        } else {
+          setProfileAvatar(data?.avatar_url || null);
+        }
+      } catch (err) {
+        console.error("Unexpected error fetching profile:", err);
+      }
+    };
+
+    fetchProfile();
+  }, [user?.id]);
 
   // Close mobile menu when navigating
   const handleNavClick = () => setMobileMenuOpen(false);
@@ -136,6 +171,7 @@ export default function AppHeader() {
                     size={36}
                     icon={<UserOutlined />}
                     className="bg-surface-container! text-on-surface-variant! ring-2! ring-on-surface-variant/10!"
+                    src={profileAvatar} // Use the derived avatar URL
                   />
                 </div>
               </Dropdown>

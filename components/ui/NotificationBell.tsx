@@ -30,12 +30,14 @@ export default function NotificationBell() {
   const { notification } = App.useApp();
   const prevCountRef = useRef(unreadCount);
   const [isOpen, setIsOpen] = useState(false);
+  const lastToastedIdRef = useRef<string | null>(null);
 
   // Toast on new notification
   useEffect(() => {
     if (userId && unreadCount > prevCountRef.current && unreadCount > 0) {
       const latest = notifications[0];
-      if (latest) {
+      // Only toast if this is a new notification we haven't already toasted
+      if (latest && latest.id !== lastToastedIdRef.current) {
         const positiveTypes = [
           "funds_released",
           "wallet_credited",
@@ -64,6 +66,8 @@ export default function NotificationBell() {
           placement: "topRight",
           duration: 5,
         });
+        // Mark this notification as toasted
+        lastToastedIdRef.current = latest.id;
       }
     }
     prevCountRef.current = unreadCount;

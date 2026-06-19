@@ -88,6 +88,7 @@
   /* Secondary (Coral Orange) */
   --secondary: #a53b15;
   --secondary-container: #ff7d52;
+  --on-secondary: #ffffff;
   --on-secondary-container: #6d1d00;
   --secondary-fixed: #ffdbd0;
   --secondary-fixed-dim: #ffb59e;
