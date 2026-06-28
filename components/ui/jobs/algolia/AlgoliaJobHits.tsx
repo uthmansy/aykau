@@ -66,13 +66,8 @@ function transformHitToJob(hit: AlgoliaJobRecord): JobListing {
 export default function AlgoliaJobHits() {
   const { hits, results } = useHits<AlgoliaJobRecord>();
 
-  // Show loading skeleton while searching
-  if (
-    results &&
-    results.nbHits === 0 &&
-    results.query === "" &&
-    !results._rawResults?.length
-  ) {
+  // Show loading skeleton while the initial search is loading
+  if (!results) {
     return (
       <div className="flex flex-col gap-4">
         {Array.from({ length: 3 }).map((_, i) => (

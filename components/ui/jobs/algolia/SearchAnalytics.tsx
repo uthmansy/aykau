@@ -20,12 +20,12 @@ export default function SearchAnalytics() {
   const lastQueryRef = useRef<string>("");
 
   useEffect(() => {
+    // Wait for results to be defined to avoid runtime errors
+    if (!results) return;
+
     // Track zero-results searches
     if (query && query !== lastQueryRef.current && results.nbHits === 0) {
       console.log("[Search Analytics] Zero results for:", query);
-
-      // TODO: Send to your analytics service
-      // Example: analytics.track('zero_results_search', { query })
     }
 
     // Track successful searches
@@ -36,14 +36,10 @@ export default function SearchAnalytics() {
         "- Results:",
         results.nbHits
       );
-
-      // TODO: Send to your analytics service
-      // Example: analytics.track('search', { query, resultCount: results.nbHits })
     }
 
     lastQueryRef.current = query;
   }, [query, results]);
 
-  // This component doesn't render anything
   return null;
 }

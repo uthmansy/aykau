@@ -22,7 +22,6 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { Grid } from "antd";
-import { NIGERIAN_STATES } from "@/constants/constants";
 import { useJobPostStore } from "@/store/jobPostForm.store";
 import { supabase } from "@/services/supabase/client";
 import { ServiceCategory } from "@/types/db";
